@@ -1,0 +1,95 @@
+services:
+  as65001:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65001
+    hostname: as65001
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65001/daemons:/etc/frr/daemons:ro
+      - ../config/as65001/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65001/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_12:
+        ipv4_address: 10.0.12.2
+    restart: unless-stopped
+
+  as65002:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65002
+    hostname: as65002
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65002/daemons:/etc/frr/daemons:ro
+      - ../config/as65002/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65002/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_12:
+        ipv4_address: 10.0.12.3
+      net_23:
+        ipv4_address: 10.0.23.2
+    restart: unless-stopped
+
+  as65003:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65003
+    hostname: as65003
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65003/daemons:/etc/frr/daemons:ro
+      - ../config/as65003/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65003/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_23:
+        ipv4_address: 10.0.23.3
+      net_34:
+        ipv4_address: 10.0.34.2
+    restart: unless-stopped
+
+  as65004:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65004
+    hostname: as65004
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65004/daemons:/etc/frr/daemons:ro
+      - ../config/as65004/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65004/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_34:
+        ipv4_address: 10.0.34.3
+    restart: unless-stopped
+
+networks:
+  net_12:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.12.0/29
+          gateway: 10.0.12.1
+  net_23:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.23.0/29
+          gateway: 10.0.23.1
+  net_34:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.34.0/29
+          gateway: 10.0.34.1

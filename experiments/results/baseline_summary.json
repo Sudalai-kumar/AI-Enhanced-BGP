@@ -1,0 +1,67 @@
+{
+  "iterations": 3,
+  "cold_start_convergence": {
+    "mean": 5.4659,
+    "std": 0.0408,
+    "median": 5.45,
+    "min": 5.4258,
+    "max": 5.5218,
+    "cv_percent": 0.75
+  },
+  "route_withdrawal_latency": {
+    "mean": 9.0427,
+    "std": 0.115,
+    "median": 9.055,
+    "min": 8.896,
+    "max": 9.177,
+    "cv_percent": 1.27
+  },
+  "route_recovery_latency": {
+    "mean": 1.3943,
+    "std": 0.0403,
+    "median": 1.384,
+    "min": 1.351,
+    "max": 1.448,
+    "cv_percent": 2.89
+  },
+  "route_flapping_updates": {
+    "mean": 7.0,
+    "std": 0.8165,
+    "median": 7.0,
+    "min": 6.0,
+    "max": 8.0,
+    "cv_percent": 11.66
+  },
+  "resource_profiling": {
+    "as65001": {
+      "avg_cpu_percent": 0.06,
+      "max_cpu_percent": 0.06,
+      "avg_mem_mib": 21.71,
+      "max_mem_mib": 21.71
+    },
+    "as65002": {
+      "avg_cpu_percent": 0.19,
+      "max_cpu_percent": 0.19,
+      "avg_mem_mib": 22.15,
+      "max_mem_mib": 22.15
+    },
+    "as65003": {
+      "avg_cpu_percent": 0.0,
+      "max_cpu_percent": 0.0,
+      "avg_mem_mib": 23.07,
+      "max_mem_mib": 23.07
+    },
+    "as65004": {
+      "avg_cpu_percent": 0.13,
+      "max_cpu_percent": 0.13,
+      "avg_mem_mib": 21.48,
+      "max_mem_mib": 21.48
+    }
+  },
+  "data_plane": {
+    "packets_transmitted": 10,
+    "packet_delivery_ratio_percent": 100.0,
+    "packet_loss_percent": 0.0,
+    "avg_rtt_ms": 0.0
+  }
+}

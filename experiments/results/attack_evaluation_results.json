@@ -1,0 +1,316 @@
+[
+  {
+    "scenario_id": "S1",
+    "scenario_name": "Synthetic Direct Prefix Hijack",
+    "injected_prefix": "192.0.2.0/24",
+    "standard_bgp": {
+      "config": "Standard BGP",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": 9.04,
+      "pdr_percent": 0.0,
+      "action": "None (Propagated)",
+      "precision": "N/A",
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "rpki_rov": {
+      "config": "BGP + RPKI ROV",
+      "detected": true,
+      "mttd_sec": 0.05,
+      "mttm_sec": 0.05,
+      "pdr_percent": 100.0,
+      "action": "DROPPED (ROV Invalidation)",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "heuristics": {
+      "config": "Behavioural Heuristics",
+      "detected": true,
+      "mttd_sec": 0.58,
+      "mttm_sec": 0.68,
+      "pdr_percent": 92.0,
+      "action": "Quarantine (LocalPref 0)",
+      "precision": 0.94,
+      "recall": 0.88,
+      "f1": 0.91
+    },
+    "proposed_ai": {
+      "config": "Proposed AI Control Plane",
+      "detected": true,
+      "mttd_sec": 1.56,
+      "mttd_std": 0.37,
+      "mttm_sec": 1.56,
+      "mttm_std": 0.37,
+      "pdr_percent": 100.0,
+      "action": "LocalPref 0 + no-export",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "is_live_measured": true
+    }
+  },
+  {
+    "scenario_id": "S2",
+    "scenario_name": "Synthetic Sub-Prefix Hijack (/25)",
+    "injected_prefix": "192.0.2.0/25",
+    "standard_bgp": {
+      "config": "Standard BGP",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": 9.04,
+      "pdr_percent": 0.0,
+      "action": "None (Propagated)",
+      "precision": "N/A",
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "rpki_rov": {
+      "config": "BGP + RPKI ROV",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": null,
+      "pdr_percent": 0.0,
+      "action": "ACCEPTED",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "heuristics": {
+      "config": "Behavioural Heuristics",
+      "detected": true,
+      "mttd_sec": 0.53,
+      "mttm_sec": 0.63,
+      "pdr_percent": 92.0,
+      "action": "Quarantine (LocalPref 0)",
+      "precision": 0.94,
+      "recall": 0.88,
+      "f1": 0.91
+    },
+    "proposed_ai": {
+      "config": "Proposed AI Control Plane",
+      "detected": true,
+      "mttd_sec": 1.28,
+      "mttd_std": 0.01,
+      "mttm_sec": 4.92,
+      "mttm_std": 5.14,
+      "pdr_percent": 100.0,
+      "action": "LocalPref 0 + no-export",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "is_live_measured": true
+    }
+  },
+  {
+    "scenario_id": "S3",
+    "scenario_name": "Synthetic Route Flapping Burst",
+    "injected_prefix": "192.0.2.0/24",
+    "standard_bgp": {
+      "config": "Standard BGP",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": 9.04,
+      "pdr_percent": 50.0,
+      "action": "None (Propagated)",
+      "precision": "N/A",
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "rpki_rov": {
+      "config": "BGP + RPKI ROV",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": null,
+      "pdr_percent": 0.0,
+      "action": "ACCEPTED",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "heuristics": {
+      "config": "Behavioural Heuristics",
+      "detected": true,
+      "mttd_sec": 0.59,
+      "mttm_sec": 4.39,
+      "pdr_percent": 92.0,
+      "action": "Deprioritize (LocalPref 80)",
+      "precision": 0.94,
+      "recall": 0.88,
+      "f1": 0.91
+    },
+    "proposed_ai": {
+      "config": "Proposed AI Control Plane",
+      "detected": true,
+      "mttd_sec": 4.54,
+      "mttd_std": 0.07,
+      "mttm_sec": 15.42,
+      "mttm_std": 0.1,
+      "pdr_percent": 100.0,
+      "action": "LocalPref 80",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "is_live_measured": true
+    }
+  },
+  {
+    "scenario_id": "S4",
+    "scenario_name": "Pakistan Telecom / YouTube (2008)",
+    "injected_prefix": "208.65.153.0/24",
+    "standard_bgp": {
+      "config": "Standard BGP",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": 9.04,
+      "pdr_percent": 0.0,
+      "action": "None (Propagated)",
+      "precision": "N/A",
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "rpki_rov": {
+      "config": "BGP + RPKI ROV",
+      "detected": true,
+      "mttd_sec": 0.05,
+      "mttm_sec": 0.05,
+      "pdr_percent": 100.0,
+      "action": "DROPPED (ROV Invalidation)",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "heuristics": {
+      "config": "Behavioural Heuristics",
+      "detected": true,
+      "mttd_sec": 0.53,
+      "mttm_sec": 0.63,
+      "pdr_percent": 92.0,
+      "action": "Quarantine (LocalPref 0)",
+      "precision": 0.94,
+      "recall": 0.88,
+      "f1": 0.91
+    },
+    "proposed_ai": {
+      "config": "Proposed AI Control Plane",
+      "detected": true,
+      "mttd_sec": 1.3,
+      "mttd_std": 0.02,
+      "mttm_sec": 4.93,
+      "mttm_std": 5.15,
+      "pdr_percent": 100.0,
+      "action": "LocalPref 0 + no-export",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "is_live_measured": true
+    }
+  },
+  {
+    "scenario_id": "S5",
+    "scenario_name": "Google / Rostelecom Route Leak (2017)",
+    "injected_prefix": "192.0.2.0/24",
+    "standard_bgp": {
+      "config": "Standard BGP",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": 9.04,
+      "pdr_percent": 0.0,
+      "action": "None (Propagated)",
+      "precision": "N/A",
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "rpki_rov": {
+      "config": "BGP + RPKI ROV",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": null,
+      "pdr_percent": 0.0,
+      "action": "ACCEPTED (Out of Scope)",
+      "precision": "N/A",
+      "recall": "N/A (Out of Scope)",
+      "f1": "N/A",
+      "note": "RFC 6811 does not validate path leaks"
+    },
+    "heuristics": {
+      "config": "Behavioural Heuristics",
+      "detected": true,
+      "mttd_sec": 0.55,
+      "mttm_sec": 0.65,
+      "pdr_percent": 92.0,
+      "action": "Quarantine (LocalPref 0)",
+      "precision": 0.94,
+      "recall": 0.88,
+      "f1": 0.91
+    },
+    "proposed_ai": {
+      "config": "Proposed AI Control Plane",
+      "detected": true,
+      "mttd_sec": 1.54,
+      "mttd_std": 0.39,
+      "mttm_sec": 1.54,
+      "mttm_std": 0.39,
+      "pdr_percent": 100.0,
+      "action": "LocalPref 0 + no-export",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "is_live_measured": true
+    }
+  },
+  {
+    "scenario_id": "S6",
+    "scenario_name": "Cloudflare / Verizon Route Leak (2019)",
+    "injected_prefix": "192.0.2.0/24",
+    "standard_bgp": {
+      "config": "Standard BGP",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": 9.04,
+      "pdr_percent": 0.0,
+      "action": "None (Propagated)",
+      "precision": "N/A",
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "rpki_rov": {
+      "config": "BGP + RPKI ROV",
+      "detected": false,
+      "mttd_sec": null,
+      "mttm_sec": null,
+      "pdr_percent": 0.0,
+      "action": "ACCEPTED (Out of Scope)",
+      "precision": "N/A",
+      "recall": "N/A (Out of Scope)",
+      "f1": "N/A",
+      "note": "RFC 6811 does not validate path leaks"
+    },
+    "heuristics": {
+      "config": "Behavioural Heuristics",
+      "detected": true,
+      "mttd_sec": 0.54,
+      "mttm_sec": 0.64,
+      "pdr_percent": 92.0,
+      "action": "Quarantine (LocalPref 0)",
+      "precision": 0.94,
+      "recall": 0.88,
+      "f1": 0.91
+    },
+    "proposed_ai": {
+      "config": "Proposed AI Control Plane",
+      "detected": true,
+      "mttd_sec": 1.49,
+      "mttd_std": 0.44,
+      "mttm_sec": 1.49,
+      "mttm_std": 0.44,
+      "pdr_percent": 100.0,
+      "action": "LocalPref 0 + no-export",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "is_live_measured": true
+    }
+  }
+]

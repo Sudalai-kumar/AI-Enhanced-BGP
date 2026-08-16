@@ -1,0 +1,43 @@
+name: bgp-ai-mesh
+
+topology:
+  nodes:
+    as65001:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65001/daemons:/etc/frr/daemons
+        - ../config/as65001/frr.conf:/etc/frr/frr.conf
+        - ../config/as65001/vtysh.conf:/etc/frr/vtysh.conf
+
+    as65002:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65002/daemons:/etc/frr/daemons
+        - ../config/as65002/frr.conf:/etc/frr/frr.conf
+        - ../config/as65002/vtysh.conf:/etc/frr/vtysh.conf
+
+    as65003:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65003/daemons:/etc/frr/daemons
+        - ../config/as65003/frr.conf:/etc/frr/frr.conf
+        - ../config/as65003/vtysh.conf:/etc/frr/vtysh.conf
+
+    as65004:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65004/daemons:/etc/frr/daemons
+        - ../config/as65004/frr.conf:/etc/frr/frr.conf
+        - ../config/as65004/vtysh.conf:/etc/frr/vtysh.conf
+
+  links:
+    # Link AS65001 (eth1: 10.0.12.2/29) <-> AS65002 (eth1: 10.0.12.3/29)
+    - endpoints: ["as65001:eth1", "as65002:eth1"]
+    # Link AS65002 (eth2: 10.0.23.2/29) <-> AS65003 (eth1: 10.0.23.3/29)
+    - endpoints: ["as65002:eth2", "as65003:eth1"]
+    # Link AS65003 (eth2: 10.0.34.2/29) <-> AS65004 (eth1: 10.0.34.3/29)
+    - endpoints: ["as65003:eth2", "as65004:eth1"]

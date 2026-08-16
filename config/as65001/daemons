@@ -1,0 +1,20 @@
+# Tell zebra to enable routing
+zebra=yes
+bgpd=yes
+ospfd=no
+ospf6d=no
+ripd=no
+ripngd=no
+isisd=no
+fabricd=no
+pimd=no
+pbrd=no
+bfdd=no
+fabricd=no
+vrrpd=no
+nhrpd=no
+eigrpd=no
+babeld=no
+sharpd=no
+pathd=no
+pcepd=no

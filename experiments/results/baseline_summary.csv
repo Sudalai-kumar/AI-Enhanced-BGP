@@ -1,0 +1,8 @@
+Metric,Mean,StdDev,Min,Max,CV_Percent,Status
+Cold Start Convergence (s),5.4659,0.0408,5.4258,5.5218,0.75%,Stable
+Route Withdrawal Latency (s),9.0427,0.115,8.896,9.177,1.27%,Stable
+Route Recovery Latency (s),1.3943,0.0403,1.351,1.448,2.89%,Stable
+Updates per 3 Flap Cycles,7.0,0.8165,6.0,8.0,11.66%,Stable
+Data Plane PDR (%),100.0,-,-,-,-,Normal Path Active
+Data Plane Avg RTT (ms),0.0,-,-,-,-,Direct Peered
+AS65003 Avg CPU / RAM,0.0%,-,-,-,-,23.07 MiB
