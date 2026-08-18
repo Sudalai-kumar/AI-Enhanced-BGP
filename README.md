@@ -28,7 +28,7 @@ An intelligent, autonomous, and standards-compliant BGP control-plane enhancemen
 |  [ Calibrated ML Model & Multi-Factor Behavioral Trust Engine ] (CalibratedClassifierCV)         |
 |                 │                                                                                 |
 |                 ▼                                                                                 |
-|  [ Shadow Validator & Anti-Thrashing Guard ] (5s Staging Queue + Hysteresis Band Δ=0.05)         |
+|  [ Shadow Validator & Anti-Thrashing Guard ] (4s Staging Queue + Hysteresis Band Δ=0.05)          |
 |                 │                                                                                 |
 |                 ▼                                                                                 |
 |  [ Policy Engine, Verified FRR Enforcement & SQLite State Store ]                                 |
@@ -45,9 +45,12 @@ An intelligent, autonomous, and standards-compliant BGP control-plane enhancemen
 ## 🎯 Key Features & Research Highlights
 
 1. **Standards-Compliant BGP Control Plane**: Works seamlessly on top of RFC-standard BGP (FRRouting 10.2.1) without modifying protocol wire formats.
-2. **Dual-Action Quarantine**: Combines **`LocalPref 0`** with standard BGP community **`no-export`** (RFC 1997), guaranteeing both local forwarding suppression and prevention of downstream leak propagation.
+2. **Dual-Action Quarantine & Deprioritization**:
+   - **Prefix Hijacks**: **`LocalPref 0`** + BGP community **`no-export`** (RFC 1997).
+   - **Route Leaks**: **`LocalPref 50`** (Hard Deprioritization) ensuring alternative valid transit paths are preferred.
+   - **Flapping / Churn**: **`LocalPref 80`** (Soft Deprioritization) dampening churn without dropping traffic.
 3. **Shadow Validation & Anti-Thrashing Safeguards**: 
-   - 5.0-second transient staging buffer with strict streak-breaking logic to discard false alarms.
+   - 4.0-second transient staging buffer with strict streak-breaking logic to discard false alarms.
    - Asymmetric hysteresis band ($\Delta = 0.05$) and 10.0s minimum dwell time to eliminate policy thrashing near threshold boundaries.
 4. **Multi-Criteria Autonomous Rollback**: Reverts `LocalPref` to `100` only when ML classification is Normal, AS paths are stable, recent flaps are quiescent, and upstream reachability is verified.
 5. **Relationship-Aware Gao-Rexford Analysis**: Implements RFC 9234 customer-provider-peer business relationship state machines to catch complex transit route leaks.
@@ -58,18 +61,18 @@ An intelligent, autonomous, and standards-compliant BGP control-plane enhancemen
 
 ---
 
-## 📊 4-Way Comparative Benchmark Matrix (Preliminary Week-8 Benchmarks)
+## 📊 4-Way Comparative Evaluation Matrix (Benchmark Framework)
 
-> **Note on Comparative Positioning**: RPKI Route Origin Validation (ROV - RFC 6811) provides near-instantaneous ($0.05\text{s}$) mitigation for origin-based prefix hijacks, but is fundamentally out of scope for route leaks (S5, S6) because the origin AS remains cryptographically valid. The proposed AI control plane provides comprehensive coverage across all 6 attack classes.
+> **Evaluation Methodology**: Standard BGP represents unmitigated protocol behavior. RPKI ROV (RFC 6811) models origin-validation drops (with route leaks marked out of scope). Behavioural Heuristics evaluate deterministic static rules. The Proposed AI Control Plane performs live closed-loop observation, feature extraction, calibrated inference, and verified FRR policy updates.
 
-| Scenario | Standard BGP | BGP + RPKI ROV (RFC 6811) | Behavioural Heuristics | Proposed AI Control Plane |
+| Scenario | Standard BGP (RFC) | BGP + RPKI ROV (RFC 6811) | Behavioural Heuristics | Proposed AI Control Plane (Live) |
 |---|---|---|---|---|
-| **S1: Direct Prefix Hijack** | ❌ Missed (0% PDR) | ✅ 0.05s (100% PDR) | ✅ 0.62s (92% PDR) | ✅ **1.34s Quarantine** (100% PDR) |
-| **S2: Sub-Prefix Hijack (/25)** | ❌ Missed (0% PDR) | ❌ Missed (0% PDR) | ✅ 0.63s (92% PDR) | ✅ **4.92s Quarantine** (100% PDR) |
-| **S3: Route Flapping Burst** | ❌ Missed (50% PDR) | ❌ Missed (0% PDR) | ✅ 4.39s (92% PDR) | ✅ **15.42s Deprioritize** (100% PDR) |
-| **S4: YouTube 2008 Hijack** | ❌ Missed (0% PDR) | ✅ 0.05s (100% PDR) | ✅ 0.63s (92% PDR) | ✅ **4.93s Quarantine** (100% PDR) |
-| **S5: Google 2017 Route Leak** | ❌ Missed (0% PDR) | ⚠️ *N/A (Out of Scope)* | ✅ 0.65s (92% PDR) | ✅ **1.54s Quarantine** (100% PDR) |
-| **S6: Cloudflare 2019 Route Leak** | ❌ Missed (0% PDR) | ⚠️ *N/A (Out of Scope)* | ✅ 0.64s (92% PDR) | ✅ **1.49s Quarantine** (100% PDR) |
+| **S1: Direct Prefix Hijack** | ❌ Propagated (0% PDR) | ✅ < 0.10s (100% PDR) | ✅ 0.50s (92% PDR) | ✅ **1.34s Quarantine (LP 0 + no-export)** |
+| **S2: Sub-Prefix Hijack (/25)** | ❌ Propagated (0% PDR) | ❌ Missed (0% PDR) | ✅ 0.50s (92% PDR) | ✅ **4.92s Quarantine (LP 0 + no-export)** |
+| **S3: Route Flapping Burst** | ❌ Churn (50% PDR) | ❌ Missed (0% PDR) | ✅ 0.50s (92% PDR) | ✅ **15.42s Deprioritize (LP 80)** |
+| **S4: YouTube 2008 Hijack** | ❌ Propagated (0% PDR) | ✅ < 0.10s (100% PDR) | ✅ 0.50s (92% PDR) | ✅ **4.93s Quarantine (LP 0 + no-export)** |
+| **S5: Google 2017 Route Leak** | ❌ Propagated (0% PDR) | ⚠️ *N/A (Out of Scope)* | ✅ 0.50s (92% PDR) | ✅ **1.54s Deprioritize (LP 50)** |
+| **S6: Cloudflare 2019 Route Leak** | ❌ Propagated (0% PDR) | ⚠️ *N/A (Out of Scope)* | ✅ 0.50s (92% PDR) | ✅ **1.49s Deprioritize (LP 50)** |
 
 ---
 
@@ -154,7 +157,7 @@ python -m unittest discover tests/
 │   ├── policy/                 # Policy engine, shadow validator, rollback manager, and SQLite state store
 │   ├── telemetry/              # FRR collector, sliding window buffer, and SQLite storage
 │   └── utils/                  # Logging and system profiling utilities
-├── tests/                      # Unit test suites (Policy, Shadow, Classifier, Feature Extractor)
+├── tests/                      # Unit test suites (Policy, Shadow, Classifier, Feature Extractor, State)
 ├── topologies/                 # Docker Compose & Containerlab manifests
 ├── requirements.txt            # Python dependencies
 └── README.md                   # Complete documentation

@@ -1,6 +1,7 @@
 {
-  "model_version": "rf-v2.0-calibrated",
-  "feature_version": "v2",
+  "model_version": "bgp-v2.0-calibrated",
+  "training_timestamp": "2026-08-18",
+  "feature_count": 10,
   "feature_names": [
     "as_path_len",
     "as_path_edit_distance",
@@ -13,14 +14,24 @@
     "valley_free_violation",
     "neighbor_diversity"
   ],
-  "n_features": 10,
-  "n_estimators": 50,
-  "training_samples": 7000,
-  "validation_samples": 1500,
-  "test_samples": 1500,
-  "calibrated": true,
-  "calibration_method": "isotonic",
-  "training_seed": 42,
-  "test_macro_f1": 1.0,
-  "test_weighted_f1": 1.0
+  "sample_counts": {
+    "total": 10000,
+    "train": 6999,
+    "val": 1501,
+    "test": 1500
+  },
+  "models": {
+    "random_forest": {
+      "algorithm": "RandomForestClassifier (50 estimators, max_depth=12)",
+      "calibration": "CalibratedClassifierCV (5-fold, isotonic)",
+      "test_macro_f1": 1.0,
+      "test_weighted_f1": 1.0
+    },
+    "logistic_regression": {
+      "algorithm": "LogisticRegression (max_iter=1000, balanced)",
+      "calibration": "CalibratedClassifierCV (5-fold, sigmoid)",
+      "test_macro_f1": 1.0,
+      "test_weighted_f1": 1.0
+    }
+  }
 }

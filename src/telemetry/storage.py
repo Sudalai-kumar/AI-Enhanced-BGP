@@ -1,12 +1,12 @@
 """
-SQLite and JSONL Telemetry Storage Engine with Safe Exception Handling & Schema Indexes.
+Full-Featured Telemetry Storage Engine with SQLite & JSONL support for Routes, Peers, System Metrics, and Convergence Events.
 """
 
 import sqlite3
 import json
 import os
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from src.utils.logger import setup_logger
 
 logger = setup_logger("telemetry_storage")
@@ -65,7 +65,16 @@ class TelemetryStorage:
                         memory_mb REAL
                     )
                 """)
-                # Create Performance Indexes for Week 9-10 Multi-iteration Queries
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS convergence_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp REAL NOT NULL,
+                        router_container TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        convergence_time_sec REAL NOT NULL,
+                        target_prefix TEXT
+                    )
+                """)
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_route_pfx_time ON route_events(prefix, timestamp);")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_route_router_time ON route_events(router_container, timestamp);")
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_peer_router_time ON bgp_peers(router_container, timestamp);")
@@ -75,11 +84,10 @@ class TelemetryStorage:
             logger.error(f"Failed to initialize SQLite schema: {e}", exc_info=True)
 
     def write_route_events(self, events: List[Dict[str, Any]]):
-        """Dual writes route telemetry to SQLite and JSONL with robust error logging."""
+        """Dual writes route telemetry to SQLite and JSONL."""
         if not events:
             return
 
-        # 1. JSONL Write
         try:
             with open(self.jsonl_path, "a", encoding="utf-8") as f:
                 for ev in events:
@@ -87,7 +95,6 @@ class TelemetryStorage:
         except Exception as e:
             logger.error(f"Failed writing to JSONL: {e}", exc_info=True)
 
-        # 2. SQLite Write
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -114,4 +121,70 @@ class TelemetryStorage:
                 """, records)
                 conn.commit()
         except Exception as e:
-            logger.error(f"Failed writing to SQLite DB: {e}", exc_info=True)
+            logger.error(f"Failed writing route events to SQLite: {e}", exc_info=True)
+
+    def write_peer_events(self, peer_events: List[Dict[str, Any]]):
+        """Writes BGP peer telemetry records to SQLite."""
+        if not peer_events:
+            return
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                records = [
+                    (
+                        pe.get("timestamp", time.time()),
+                        pe.get("router_container", "unknown"),
+                        pe.get("peer_ip", ""),
+                        pe.get("remote_as", 0),
+                        pe.get("state", ""),
+                        pe.get("uptime", ""),
+                        pe.get("prefixes_received", 0)
+                    )
+                    for pe in peer_events
+                ]
+                cursor.executemany("""
+                    INSERT INTO bgp_peers 
+                    (timestamp, router_container, peer_ip, remote_as, state, uptime, prefixes_received)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, records)
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed writing peer events to SQLite: {e}", exc_info=True)
+
+    def write_system_metrics(self, metrics: List[Dict[str, Any]]):
+        """Writes CPU/RAM container metrics to SQLite."""
+        if not metrics:
+            return
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                records = [
+                    (
+                        m.get("timestamp", time.time()),
+                        m.get("container_name", "unknown"),
+                        m.get("cpu_percent", 0.0),
+                        m.get("memory_mb", 0.0)
+                    )
+                    for m in metrics
+                ]
+                cursor.executemany("""
+                    INSERT INTO system_metrics 
+                    (timestamp, container_name, cpu_percent, memory_mb)
+                    VALUES (?, ?, ?, ?)
+                """, records)
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed writing system metrics to SQLite: {e}", exc_info=True)
+
+    def write_convergence_event(self, router: str, event_type: str, convergence_sec: float, target_prefix: str = ""):
+        """Records a BGP convergence timing event."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    INSERT INTO convergence_events
+                    (timestamp, router_container, event_type, convergence_time_sec, target_prefix)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (time.time(), router, event_type, convergence_sec, target_prefix))
+                conn.commit()
+        except Exception as e:
+            logger.error(f"Failed writing convergence event to SQLite: {e}", exc_info=True)

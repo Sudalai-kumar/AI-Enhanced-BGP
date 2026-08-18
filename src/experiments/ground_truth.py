@@ -15,6 +15,8 @@ GROUND_TRUTH_SCENARIOS = {
         "target_origin": 65004,
         "is_leak": False,
         "is_flap": False,
+        "expected_loc_pref": 0,
+        "expected_community": "no-export",
         "expected_mitigation": "Quarantine (LocalPref 0 + no-export)"
     },
     "S2": {
@@ -26,6 +28,8 @@ GROUND_TRUTH_SCENARIOS = {
         "target_origin": 65004,
         "is_leak": False,
         "is_flap": False,
+        "expected_loc_pref": 0,
+        "expected_community": "no-export",
         "expected_mitigation": "Quarantine (LocalPref 0 + no-export)"
     },
     "S3": {
@@ -37,6 +41,8 @@ GROUND_TRUTH_SCENARIOS = {
         "target_origin": 65001,
         "is_leak": False,
         "is_flap": True,
+        "expected_loc_pref": 80,
+        "expected_community": None,
         "expected_mitigation": "Soft Deprioritization (LocalPref 80)"
     },
     "S4": {
@@ -48,6 +54,8 @@ GROUND_TRUTH_SCENARIOS = {
         "target_origin": 17557,
         "is_leak": False,
         "is_flap": False,
+        "expected_loc_pref": 0,
+        "expected_community": "no-export",
         "expected_mitigation": "Quarantine (LocalPref 0 + no-export)"
     },
     "S5": {
@@ -59,7 +67,9 @@ GROUND_TRUTH_SCENARIOS = {
         "target_origin": 15169,
         "is_leak": True,
         "is_flap": False,
-        "expected_mitigation": "Quarantine (LocalPref 0 + no-export)"
+        "expected_loc_pref": 50,
+        "expected_community": None,
+        "expected_mitigation": "Hard Deprioritization (LocalPref 50)"
     },
     "S6": {
         "id": "S6",
@@ -70,6 +80,8 @@ GROUND_TRUTH_SCENARIOS = {
         "target_origin": 13335,
         "is_leak": True,
         "is_flap": False,
-        "expected_mitigation": "Quarantine (LocalPref 0 + no-export)"
+        "expected_loc_pref": 50,
+        "expected_community": None,
+        "expected_mitigation": "Hard Deprioritization (LocalPref 50)"
     }
 }

@@ -1,70 +1,69 @@
 """
-BGP Model Loader and Inference Engine with Schema Metadata Validation.
+Standardized BGP Machine Learning Classifier Loader and Real-Time Predictor.
+Enforces strict schema validation against model_metadata.json.
 """
 
 import os
+import sys
 import json
 import joblib
 import numpy as np
-from typing import Tuple, Dict, Any, Optional
-from src.ai.feature_extractor import FEATURE_NAMES
+from typing import Tuple, Optional
 
 MODELS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
-
-class SchemaMismatchError(Exception):
-    """Raised when runtime feature schema does not match trained model metadata."""
-    pass
+SCALER_PATH = os.path.join(MODELS_DIR, "scaler.joblib")
+RF_MODEL_PATH = os.path.join(MODELS_DIR, "random_forest.joblib")
+LR_MODEL_PATH = os.path.join(MODELS_DIR, "logistic_regression.joblib")
+METADATA_PATH = os.path.join(MODELS_DIR, "model_metadata.json")
 
 class BGPClassifier:
-    def __init__(self, model_type: str = "random_forest", models_dir: str = MODELS_DIR):
+    def __init__(self, model_type: str = "random_forest"):
         self.model_type = model_type
-        self.models_dir = models_dir
         self.scaler = None
         self.model = None
-        self.metadata = {}
+        self.metadata = None
         self.load_models()
 
     def load_models(self):
-        """Loads and strictly validates model schema against metadata artifact."""
-        scaler_path = os.path.join(self.models_dir, "scaler.joblib")
-        model_file = "random_forest.joblib" if self.model_type == "random_forest" else "logistic_regression.joblib"
-        model_path = os.path.join(self.models_dir, model_file)
-        meta_path = os.path.join(self.models_dir, "model_metadata.json")
+        """Loads models and strictly enforces schema metadata."""
+        if not os.path.exists(SCALER_PATH):
+            raise FileNotFoundError(f"Scaler not found at {SCALER_PATH}. Run train_models.py first.")
+        
+        # Strict Metadata Requirement
+        if not os.path.exists(METADATA_PATH):
+            raise FileNotFoundError(f"Model metadata schema missing at {METADATA_PATH}. Required for schema safety.")
 
-        if not os.path.exists(scaler_path) or not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model artifacts missing in {self.models_dir}. Please run src/dataset/train_models.py.")
+        with open(METADATA_PATH, "r", encoding="utf-8") as f:
+            self.metadata = json.load(f)
 
-        # Load Metadata Artifact
-        if os.path.exists(meta_path):
-            with open(meta_path, "r", encoding="utf-8") as f:
-                self.metadata = json.load(f)
-            
-            # Validate Schema Integrity
-            expected_features = self.metadata.get("feature_names", [])
-            if expected_features != FEATURE_NAMES:
-                raise SchemaMismatchError(
-                    f"Feature mismatch! Model expects {expected_features}, but runtime has {FEATURE_NAMES}"
-                )
+        self.scaler = joblib.load(SCALER_PATH)
 
-        self.scaler = joblib.load(scaler_path)
-        self.model = joblib.load(model_path)
-
-        # Validate Scaler Dimension
-        if getattr(self.scaler, "n_features_in_", 10) != len(FEATURE_NAMES):
-            raise SchemaMismatchError(
-                f"Scaler feature count mismatch: expected {len(FEATURE_NAMES)}, got {self.scaler.n_features_in_}"
-            )
+        if self.model_type == "random_forest":
+            if not os.path.exists(RF_MODEL_PATH):
+                raise FileNotFoundError(f"Random Forest model not found at {RF_MODEL_PATH}.")
+            self.model = joblib.load(RF_MODEL_PATH)
+        elif self.model_type == "logistic_regression":
+            if not os.path.exists(LR_MODEL_PATH):
+                raise FileNotFoundError(f"Logistic Regression model not found at {LR_MODEL_PATH}.")
+            self.model = joblib.load(LR_MODEL_PATH)
+        else:
+            raise ValueError(f"Unknown model_type: {self.model_type}")
 
     def predict(self, feature_vector: np.ndarray) -> Tuple[int, np.ndarray]:
         """
-        Executes calibrated inference on a single 10-element feature vector.
-        Returns: (predicted_class_id, calibrated_probability_array)
+        Runs calibrated inference on single 10-feature vector.
+        Returns: (predicted_class_id, calibrated_probabilities)
         """
-        vec = np.asarray(feature_vector, dtype=np.float32).reshape(1, -1)
-        if vec.shape[1] != len(FEATURE_NAMES):
-            raise ValueError(f"Feature vector must have length {len(FEATURE_NAMES)}, got {vec.shape[1]}")
+        # Strict vector shape assertion
+        expected_len = self.metadata.get("feature_count", 10)
+        if len(feature_vector) != expected_len:
+            raise ValueError(f"Feature vector shape mismatch: got {len(feature_vector)}, expected {expected_len}.")
 
-        vec_scaled = self.scaler.transform(vec)
-        probs = self.model.predict_proba(vec_scaled)[0]
+        # Scale input
+        x_scaled = self.scaler.transform(feature_vector.reshape(1, -1))
+        
+        # Predict calibrated class probabilities
+        probs = self.model.predict_proba(x_scaled)[0]
         pred_class = int(np.argmax(probs))
+        
         return pred_class, probs

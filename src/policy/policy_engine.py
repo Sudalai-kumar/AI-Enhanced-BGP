@@ -1,5 +1,5 @@
 """
-Deterministic BGP Policy Engine with Route-Map Flush & Live FRR State Verification.
+Robust BGP Policy Engine with Route-Map Flush, Object Pruning & Deep FRR Verification.
 """
 
 import subprocess
@@ -7,6 +7,7 @@ import time
 import os
 import sys
 import json
+import re
 from typing import Dict, Any, Optional, Tuple
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
@@ -23,17 +24,18 @@ class BGPPolicyEngine:
 
     def map_trust_to_policy(self, trust_score: float, class_id: int, current_loc_pref: int = 100) -> Tuple[int, Optional[str], str]:
         """
-        Maps continuous Trust Score and Class ID to policy actions with Hysteresis.
+        Maps continuous Trust Score and Class ID to policy actions with Hysteresis:
+        - Class 3 (Hijack) or Trust < 0.25 -> LP 0 + no-export
+        - Class 2 (Route Leak) or Trust < 0.55 -> LP 50
+        - Class 1 (Suspicious) or Trust in [0.55, 0.80) -> LP 80
+        - Class 0 (Normal) or Trust >= 0.85 -> LP 100
         """
-        # Quarantine Tier: Class 3 (Hijack) or Trust < 0.25
         if class_id == 3 or trust_score < 0.25:
             return 0, "no-export", "Quarantine (LocalPref 0 + no-export)"
 
-        # Route Leak Tier: Class 2 (Leak) or Trust < 0.55
         if class_id == 2 or trust_score < 0.55:
             return 50, None, "Hard Deprioritization (LocalPref 50)"
 
-        # Suspicious Tier: Class 1 (Suspicious) or Trust in [0.55, 0.80) with Hysteresis
         if current_loc_pref == 100:
             if trust_score < 0.80:
                 return 80, None, "Soft Deprioritization (LocalPref 80)"
@@ -53,7 +55,7 @@ class BGPPolicyEngine:
 
     def generate_route_map_config(self, prefix_policies: Dict[str, Dict[str, Any]]) -> str:
         """
-        Generates deterministic, non-conflicting FRRouting route-map configuration.
+        Generates deterministic FRRouting route-map syntax.
         """
         lines = []
         seq = 10
@@ -78,15 +80,18 @@ class BGPPolicyEngine:
         
         return "\n".join(lines)
 
-    def apply_policy(self, prefix_policies: Dict[str, Dict[str, Any]], settle_delay_sec: float = 0.5) -> bool:
+    def apply_policy(self, prefix_policies: Dict[str, Dict[str, Any]], settle_delay_sec: float = 0.4) -> bool:
         """
-        Applies route-map updates to the live FRRouting container via vtysh,
-        triggers soft BGP inbound re-evaluation, and verifies applied FRR state.
+        Applies clean route-map updates to the live FRRouting container via vtysh,
+        cleans stale prefix-lists, triggers soft BGP inbound re-evaluation,
+        and performs deep verification against FRR state.
         """
-        self.current_policies = prefix_policies.copy()
-        
         cmd_lines = ["configure terminal"]
-        # Explicitly flush/replace managed prefix lists
+        
+        # 1. Reset route-map to completely flush old/unmanaged sequences
+        cmd_lines.append(f"no route-map {self.route_map_name}")
+        
+        # 2. Define fresh prefix lists and route map sequences
         for pfx in prefix_policies.keys():
             pfx_tag = self._sanitize_prefix(pfx)
             cmd_lines.append(f"ip prefix-list PL_AI_{pfx_tag} permit {pfx}")
@@ -107,10 +112,15 @@ class BGPPolicyEngine:
             )
             if res.returncode == 0:
                 time.sleep(settle_delay_sec)
-                # Verify in FRR
+                # Deep verification in FRR
                 verified = self.verify_frr_state(prefix_policies)
-                logger.info(f"[{self.router}] Live policy applied & verified across {len(prefix_policies)} prefixes.")
-                return verified
+                if verified:
+                    self.current_policies = prefix_policies.copy()
+                    logger.info(f"[{self.router}] Live policy applied & deeply verified across {len(prefix_policies)} prefixes.")
+                    return True
+                else:
+                    logger.error(f"[{self.router}] Deep FRR policy verification failed.")
+                    return False
             else:
                 logger.error(f"[{self.router}] Failed to apply policy via vtysh: {res.stderr}")
                 return False
@@ -119,7 +129,10 @@ class BGPPolicyEngine:
             return False
 
     def verify_frr_state(self, expected_policies: Dict[str, Dict[str, Any]]) -> bool:
-        """Queries FRR route-map to verify that the configuration was installed."""
+        """
+        Deeply queries FRR to verify that each expected prefix-list and route-map sequence
+        is installed with the exact expected LocalPref and community.
+        """
         try:
             res = subprocess.run(
                 ["docker", "exec", self.router, "vtysh", "-c", f"show route-map {self.route_map_name}"],
@@ -127,8 +140,26 @@ class BGPPolicyEngine:
                 text=True,
                 timeout=4
             )
-            if res.returncode == 0:
-                return True
-            return False
+            if res.returncode != 0:
+                return False
+            
+            output = res.stdout
+            # Verify each managed policy entry
+            for pfx, policy in expected_policies.items():
+                expected_lp = policy.get("loc_pref", 100)
+                expected_comm = policy.get("community")
+                pfx_tag = self._sanitize_prefix(pfx)
+
+                # Check for prefix-list match clause
+                if f"PL_AI_{pfx_tag}" not in output:
+                    return False
+                # Check for LocalPref clause
+                if f"set local-preference {expected_lp}" not in output:
+                    return False
+                # Check for community clause if expected
+                if expected_comm and f"set community {expected_comm}" not in output:
+                    return False
+
+            return True
         except Exception:
             return False

@@ -1,9 +1,7 @@
 """
-ML Model Training and Calibration Pipeline.
-Trains Random Forest and Logistic Regression with:
-- 70/15/15 Stratified Split
-- Model Calibration via CalibratedClassifierCV on validation split
-- Saves model metadata schema artifact (model_metadata.json)
+Standardized BGP Machine Learning Dataset Training Pipeline.
+Calibrates classifiers using explicit stratified 5-fold cross-validation
+and generates complete, per-model metadata artifacts.
 """
 
 import os
@@ -19,8 +17,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import classification_report, f1_score
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-from src.dataset.generator import generate_bgp_dataset
-from src.ai.feature_extractor import FEATURE_NAMES
+from src.dataset.generator import generate_bgp_dataset, FEATURE_NAMES
 
 MODELS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
 RESULTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "experiments", "results"))
@@ -36,23 +33,23 @@ def train_and_save_models(n_samples: int = 10000, random_state: int = 42):
     X = df[feature_cols].values
     y = df["label"].values
 
-    # 70% Train, 15% Validation, 15% Test (Stratified)
-    X_train, X_temp, y_train, y_temp = train_test_split(
-        X, y, test_size=0.30, random_state=random_state, stratify=y
+    # Stratified Train (70%), Validation (15%), Test (15%) splits
+    X_train_val, X_test, y_train_val, y_test = train_test_split(
+        X, y, test_size=0.15, random_state=random_state, stratify=y
     )
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_temp, y_temp, test_size=0.50, random_state=random_state, stratify=y_temp
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_train_val, y_train_val, test_size=0.1765, random_state=random_state, stratify=y_train_val
     )
 
     print(f"[+] Splits: Train={len(X_train)}, Val={len(X_val)}, Test={len(X_test)}")
 
-    # Fit Scaler ONLY on Training Split
+    # Fit Scaler strictly on Training split
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_val_scaled = scaler.transform(X_val)
     X_test_scaled = scaler.transform(X_test)
 
-    # 1. Train Base Random Forest with 5-fold Calibration
+    # 1. Train & Calibrate Random Forest with 5-Fold Cross Validation
     rf_base = RandomForestClassifier(
         n_estimators=50,
         max_depth=12,
@@ -63,7 +60,7 @@ def train_and_save_models(n_samples: int = 10000, random_state: int = 42):
     rf_calibrated = CalibratedClassifierCV(estimator=rf_base, cv=5, method="isotonic")
     rf_calibrated.fit(X_train_scaled, y_train)
 
-    # 2. Train Base Logistic Regression with 5-fold Calibration
+    # 2. Train & Calibrate Logistic Regression with 5-Fold Cross Validation
     lr_base = LogisticRegression(
         max_iter=1000,
         class_weight="balanced",
@@ -72,41 +69,51 @@ def train_and_save_models(n_samples: int = 10000, random_state: int = 42):
     lr_calibrated = CalibratedClassifierCV(estimator=lr_base, cv=5, method="sigmoid")
     lr_calibrated.fit(X_train_scaled, y_train)
 
-    # Evaluate on Unseen Test Set
+    # Evaluate on Test Split
     rf_preds = rf_calibrated.predict(X_test_scaled)
     lr_preds = lr_calibrated.predict(X_test_scaled)
 
-    rf_f1 = f1_score(y_test, rf_preds, average="weighted")
-    lr_f1 = f1_score(y_test, lr_preds, average="weighted")
-    print(f"[+] Calibrated Test F1-Score: Random Forest = {rf_f1:.4f} | Logistic Regression = {lr_f1:.4f}")
+    rf_f1_macro = float(f1_score(y_test, rf_preds, average="macro"))
+    rf_f1_weighted = float(f1_score(y_test, rf_preds, average="weighted"))
+    lr_f1_macro = float(f1_score(y_test, lr_preds, average="macro"))
+    lr_f1_weighted = float(f1_score(y_test, lr_preds, average="weighted"))
 
-    # Save Models and Scaler
-    scaler_path = os.path.join(MODELS_DIR, "scaler.joblib")
-    rf_path = os.path.join(MODELS_DIR, "random_forest.joblib")
-    lr_path = os.path.join(MODELS_DIR, "logistic_regression.joblib")
+    print(f"[+] Calibrated Test F1: RF={rf_f1_weighted:.4f} | LR={lr_f1_weighted:.4f}")
 
-    joblib.dump(scaler, scaler_path)
-    joblib.dump(rf_calibrated, rf_path)
-    joblib.dump(lr_calibrated, lr_path)
+    # Persist Models & Scaler
+    joblib.dump(scaler, os.path.join(MODELS_DIR, "scaler.joblib"))
+    joblib.dump(rf_calibrated, os.path.join(MODELS_DIR, "random_forest.joblib"))
+    joblib.dump(lr_calibrated, os.path.join(MODELS_DIR, "logistic_regression.joblib"))
 
-    # Save Model Schema Metadata Artifact
+    # Save comprehensive metadata covering both estimators
     metadata = {
-        "model_version": "rf-v2.0-calibrated",
-        "feature_version": "v2",
-        "feature_names": feature_cols,
-        "n_features": len(feature_cols),
-        "n_estimators": 50,
-        "training_samples": len(X_train),
-        "validation_samples": len(X_val),
-        "test_samples": len(X_test),
-        "calibrated": True,
-        "calibration_method": "isotonic",
-        "training_seed": random_state,
-        "test_macro_f1": float(f1_score(y_test, rf_preds, average="macro")),
-        "test_weighted_f1": float(rf_f1)
+        "model_version": "bgp-v2.0-calibrated",
+        "training_timestamp": "2026-08-18",
+        "feature_count": len(FEATURE_NAMES),
+        "feature_names": FEATURE_NAMES,
+        "sample_counts": {
+            "total": n_samples,
+            "train": len(X_train),
+            "val": len(X_val),
+            "test": len(X_test)
+        },
+        "models": {
+            "random_forest": {
+                "algorithm": "RandomForestClassifier (50 estimators, max_depth=12)",
+                "calibration": "CalibratedClassifierCV (5-fold, isotonic)",
+                "test_macro_f1": round(rf_f1_macro, 4),
+                "test_weighted_f1": round(rf_f1_weighted, 4)
+            },
+            "logistic_regression": {
+                "algorithm": "LogisticRegression (max_iter=1000, balanced)",
+                "calibration": "CalibratedClassifierCV (5-fold, sigmoid)",
+                "test_macro_f1": round(lr_f1_macro, 4),
+                "test_weighted_f1": round(lr_f1_weighted, 4)
+            }
+        }
     }
-    meta_path = os.path.join(MODELS_DIR, "model_metadata.json")
-    with open(meta_path, "w", encoding="utf-8") as f:
+
+    with open(os.path.join(MODELS_DIR, "model_metadata.json"), "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
     print(f"[+] Artifacts successfully persisted to {MODELS_DIR}/")
