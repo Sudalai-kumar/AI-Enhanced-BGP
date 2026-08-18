@@ -1,10 +1,5 @@
 """
-Programmable BGP Attack Injector for Synthetic & Historical Perturbations.
-Controls FRR nodes (as65004 / as65001) to inject:
-1. Exact Prefix Hijacks
-2. Sub-prefix Hijacks
-3. Route Leaks & Valley-Free Detours
-4. Route Flapping Floods
+Fixed Programmable BGP Attack Injector using real leaked_as_path parameter.
 """
 
 import subprocess
@@ -65,12 +60,12 @@ class BGPAttackInjector:
         return code == 0
 
     def inject_route_leak(self, prefix: str = "192.0.2.0/24", leaked_as_path: str = "65002 65004 65004 65001") -> bool:
-        """Injects a multi-hop transit route leak with valley-free violation."""
+        """Injects a multi-hop transit route leak utilizing the actual leaked_as_path argument."""
         logger.info(f"Injecting Route Leak on {self.origin} with path '{leaked_as_path}'...")
         cmds = [
             "configure terminal",
             "route-map RM_OUT permit 10",
-            f" set as-path prepend 65004 65004",
+            f" set as-path prepend {leaked_as_path}",
             "exit",
             "exit",
             "clear ip bgp * soft out"
@@ -78,11 +73,10 @@ class BGPAttackInjector:
         code, out, err = self.exec_vtysh(self.origin, cmds)
         return code == 0
 
-    def inject_burst_flapping(self, prefix: str = "192.0.2.0/24", cycles: int = 5, interval: float = 0.5):
+    def inject_burst_flapping(self, prefix: str = "192.0.2.0/24", cycles: int = 4, interval: float = 0.4):
         """Simulates rapid advertisement burst flooding."""
         logger.info(f"Injecting Burst Flapping: {cycles} cycles at {interval}s interval...")
         for i in range(1, cycles + 1):
-            # Withdraw
             self.exec_vtysh(self.origin, [
                 "configure terminal",
                 "router bgp 65001",
@@ -94,7 +88,6 @@ class BGPAttackInjector:
                 "clear ip bgp * soft out"
             ])
             time.sleep(interval)
-            # Re-advertise
             self.exec_vtysh(self.origin, [
                 "configure terminal",
                 "router bgp 65001",
@@ -108,15 +101,14 @@ class BGPAttackInjector:
             time.sleep(interval)
 
     def inject_historical_replay(self, incident_key: str) -> bool:
-        """Replays a mapped historical anomaly signature onto the multi-AS testbed."""
+        """Replays mapped historical anomaly signature onto the multi-AS testbed."""
         incident = HISTORICAL_INCIDENTS.get(incident_key)
         if not incident:
             logger.error(f"Incident key '{incident_key}' not found.")
             return False
             
         pfx = incident["target_prefix"]
-        origin_as = incident["injected_origin"]
-        logger.info(f"Replaying signature for '{incident['name']}' (Prefix: {pfx}, Origin: {origin_as})...")
+        logger.info(f"Replaying signature for '{incident['name']}' (Prefix: {pfx})...")
         
         cmds = [
             "configure terminal",
@@ -134,8 +126,6 @@ class BGPAttackInjector:
 
     def cleanup_all_attacks(self):
         """Restores both as65004 and as65001 to clean baseline configurations."""
-        logger.info("Cleaning up all injected attack state across nodes...")
-        # Clean rogue node as65004
         self.exec_vtysh(self.rogue, [
             "configure terminal",
             "router bgp 65004",
@@ -150,7 +140,6 @@ class BGPAttackInjector:
             "exit",
             "clear ip bgp * soft out"
         ])
-        # Clean origin node as65001
         self.exec_vtysh(self.origin, [
             "configure terminal",
             "route-map RM_OUT permit 10",
@@ -165,5 +154,4 @@ class BGPAttackInjector:
             "exit",
             "clear ip bgp * soft out"
         ])
-        time.sleep(1.0)
-        logger.info("Clean baseline state restored.")
+        time.sleep(0.5)

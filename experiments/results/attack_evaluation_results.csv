@@ -1,25 +1,25 @@
-Scenario_ID,Scenario_Name,Configuration,Detected,MTTD_sec,MTTM_sec,PDR_Percent,Action,F1_Score
-S1,Synthetic Direct Prefix Hijack,Standard BGP,False,,9.04,0.0,None (Propagated),0.0
-S1,Synthetic Direct Prefix Hijack,BGP + RPKI ROV,True,0.05,0.05,100.0,DROPPED (ROV Invalidation),1.0
-S1,Synthetic Direct Prefix Hijack,Behavioural Heuristics,True,0.58,0.68,92.0,Quarantine (LocalPref 0),0.91
-S1,Synthetic Direct Prefix Hijack,Proposed AI Control Plane,True,1.56,1.56,100.0,LocalPref 0 + no-export,1.0
-S2,Synthetic Sub-Prefix Hijack (/25),Standard BGP,False,,9.04,0.0,None (Propagated),0.0
-S2,Synthetic Sub-Prefix Hijack (/25),BGP + RPKI ROV,False,,,0.0,ACCEPTED,0.0
-S2,Synthetic Sub-Prefix Hijack (/25),Behavioural Heuristics,True,0.53,0.63,92.0,Quarantine (LocalPref 0),0.91
-S2,Synthetic Sub-Prefix Hijack (/25),Proposed AI Control Plane,True,1.28,4.92,100.0,LocalPref 0 + no-export,1.0
-S3,Synthetic Route Flapping Burst,Standard BGP,False,,9.04,50.0,None (Propagated),0.0
-S3,Synthetic Route Flapping Burst,BGP + RPKI ROV,False,,,0.0,ACCEPTED,0.0
-S3,Synthetic Route Flapping Burst,Behavioural Heuristics,True,0.59,4.39,92.0,Deprioritize (LocalPref 80),0.91
-S3,Synthetic Route Flapping Burst,Proposed AI Control Plane,True,4.54,15.42,100.0,LocalPref 80,1.0
-S4,Pakistan Telecom / YouTube (2008),Standard BGP,False,,9.04,0.0,None (Propagated),0.0
-S4,Pakistan Telecom / YouTube (2008),BGP + RPKI ROV,True,0.05,0.05,100.0,DROPPED (ROV Invalidation),1.0
-S4,Pakistan Telecom / YouTube (2008),Behavioural Heuristics,True,0.53,0.63,92.0,Quarantine (LocalPref 0),0.91
-S4,Pakistan Telecom / YouTube (2008),Proposed AI Control Plane,True,1.3,4.93,100.0,LocalPref 0 + no-export,1.0
-S5,Google / Rostelecom Route Leak (2017),Standard BGP,False,,9.04,0.0,None (Propagated),0.0
-S5,Google / Rostelecom Route Leak (2017),BGP + RPKI ROV,False,,,0.0,ACCEPTED (Out of Scope),N/A
-S5,Google / Rostelecom Route Leak (2017),Behavioural Heuristics,True,0.55,0.65,92.0,Quarantine (LocalPref 0),0.91
-S5,Google / Rostelecom Route Leak (2017),Proposed AI Control Plane,True,1.54,1.54,100.0,LocalPref 0 + no-export,1.0
-S6,Cloudflare / Verizon Route Leak (2019),Standard BGP,False,,9.04,0.0,None (Propagated),0.0
-S6,Cloudflare / Verizon Route Leak (2019),BGP + RPKI ROV,False,,,0.0,ACCEPTED (Out of Scope),N/A
-S6,Cloudflare / Verizon Route Leak (2019),Behavioural Heuristics,True,0.54,0.64,92.0,Quarantine (LocalPref 0),0.91
-S6,Cloudflare / Verizon Route Leak (2019),Proposed AI Control Plane,True,1.49,1.49,100.0,LocalPref 0 + no-export,1.0
+Scenario_ID,Scenario_Name,Configuration,Detected,MTTD_sec,MTTM_sec,PDR_Percent,Action,Precision,Recall,F1_Score
+S1,Synthetic Direct Prefix Hijack,Standard BGP,False,,9.04,0.0,None (Propagated),0.0,0.0,0.0
+S1,Synthetic Direct Prefix Hijack,BGP + RPKI ROV,True,0.05,0.05,100.0,DROPPED (ROV Invalidation),1.0,1.0,1.0
+S1,Synthetic Direct Prefix Hijack,Behavioural Heuristics,False,0.52,0.62,0.0,Quarantine (LocalPref 0),0.0,0.0,0.0
+S1,Synthetic Direct Prefix Hijack,Proposed AI Control Plane,True,20.67,20.67,0.0,LocalPref 0 + no-export,0.0,0.0,0.0
+S2,Synthetic Sub-Prefix Hijack (/25),Standard BGP,False,,9.04,0.0,None (Propagated),0.0,0.0,0.0
+S2,Synthetic Sub-Prefix Hijack (/25),BGP + RPKI ROV,False,,,0.0,ACCEPTED,0.0,0.0,0.0
+S2,Synthetic Sub-Prefix Hijack (/25),Behavioural Heuristics,False,0.53,0.63,0.0,Quarantine (LocalPref 0),0.0,0.0,0.0
+S2,Synthetic Sub-Prefix Hijack (/25),Proposed AI Control Plane,True,19.81,19.81,0.0,LocalPref 0 + no-export,0.0,0.0,0.0
+S3,Synthetic Route Flapping Burst,Standard BGP,False,,9.04,50.0,None (Propagated),0.0,0.0,0.0
+S3,Synthetic Route Flapping Burst,BGP + RPKI ROV,False,,,0.0,ACCEPTED,0.0,0.0,0.0
+S3,Synthetic Route Flapping Burst,Behavioural Heuristics,False,0.5,4.3,0.0,Deprioritize (LocalPref 80),0.0,0.0,0.0
+S3,Synthetic Route Flapping Burst,Proposed AI Control Plane,True,23.04,23.04,50.0,LocalPref 80,0.0,0.0,0.0
+S4,Pakistan Telecom / YouTube (2008),Standard BGP,False,,9.04,0.0,None (Propagated),0.0,0.0,0.0
+S4,Pakistan Telecom / YouTube (2008),BGP + RPKI ROV,True,0.05,0.05,100.0,DROPPED (ROV Invalidation),1.0,1.0,1.0
+S4,Pakistan Telecom / YouTube (2008),Behavioural Heuristics,False,0.56,0.66,0.0,Quarantine (LocalPref 0),0.0,0.0,0.0
+S4,Pakistan Telecom / YouTube (2008),Proposed AI Control Plane,True,20.93,20.93,0.0,LocalPref 0 + no-export,0.0,0.0,0.0
+S5,Google / Rostelecom Route Leak (2017),Standard BGP,False,,9.04,0.0,None (Propagated),0.0,0.0,0.0
+S5,Google / Rostelecom Route Leak (2017),BGP + RPKI ROV,False,,,0.0,ACCEPTED (Out of Scope),N/A,N/A (Out of Scope),N/A
+S5,Google / Rostelecom Route Leak (2017),Behavioural Heuristics,False,0.55,0.65,0.0,Quarantine (LocalPref 0),0.0,0.0,0.0
+S5,Google / Rostelecom Route Leak (2017),Proposed AI Control Plane,True,21.29,21.29,0.0,LocalPref 0 + no-export,0.0,0.0,0.0
+S6,Cloudflare / Verizon Route Leak (2019),Standard BGP,False,,9.04,0.0,None (Propagated),0.0,0.0,0.0
+S6,Cloudflare / Verizon Route Leak (2019),BGP + RPKI ROV,False,,,0.0,ACCEPTED (Out of Scope),N/A,N/A (Out of Scope),N/A
+S6,Cloudflare / Verizon Route Leak (2019),Behavioural Heuristics,False,0.5,0.6,0.0,Quarantine (LocalPref 0),0.0,0.0,0.0
+S6,Cloudflare / Verizon Route Leak (2019),Proposed AI Control Plane,True,20.72,20.72,0.0,LocalPref 0 + no-export,0.0,0.0,0.0

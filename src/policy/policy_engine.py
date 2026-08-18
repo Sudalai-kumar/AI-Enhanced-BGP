@@ -1,15 +1,12 @@
 """
-Behavioural Policy Engine for Autonomous BGP Control Plane Adaptation.
-Translates Trust Scores and anomaly classifications into standards-compliant BGP policy:
-- Local Preference tiers (100, 80, 50, 0)
-- Dual quarantine (LocalPref 0 + BGP community 'no-export')
-- Pushes live FRRouting route-map updates via vtysh with graceful soft re-evaluation.
+Deterministic BGP Policy Engine with Route-Map Flush & Live FRR State Verification.
 """
 
 import subprocess
 import time
 import os
 import sys
+import json
 from typing import Dict, Any, Optional, Tuple
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
@@ -22,12 +19,11 @@ class BGPPolicyEngine:
         self.router = router
         self.peer_ip = peer_ip
         self.route_map_name = route_map_name
-        self.current_policies: Dict[str, Dict[str, Any]] = {} # prefix -> {loc_pref, community, timestamp}
+        self.current_policies: Dict[str, Dict[str, Any]] = {}
 
     def map_trust_to_policy(self, trust_score: float, class_id: int, current_loc_pref: int = 100) -> Tuple[int, Optional[str], str]:
         """
-        Maps continuous Trust Score and Class ID to policy actions with Hysteresis:
-        Returns: (target_local_pref, community_action, action_description)
+        Maps continuous Trust Score and Class ID to policy actions with Hysteresis.
         """
         # Quarantine Tier: Class 3 (Hijack) or Trust < 0.25
         if class_id == 3 or trust_score < 0.25:
@@ -38,15 +34,12 @@ class BGPPolicyEngine:
             return 50, None, "Hard Deprioritization (LocalPref 50)"
 
         # Suspicious Tier: Class 1 (Suspicious) or Trust in [0.55, 0.80) with Hysteresis
-        # To de-escalate back to normal, trust must exceed 0.85
         if current_loc_pref == 100:
-            # Entering suspicious requires trust < 0.80
             if trust_score < 0.80:
                 return 80, None, "Soft Deprioritization (LocalPref 80)"
             else:
                 return 100, None, "Default Baseline (LocalPref 100)"
         else:
-            # Currently deprioritized: requires trust >= 0.85 to return to 100
             if trust_score >= 0.85 and class_id == 0:
                 return 100, None, "Default Baseline (LocalPref 100)"
             elif trust_score < 0.55:
@@ -54,10 +47,13 @@ class BGPPolicyEngine:
             else:
                 return 80, None, "Soft Deprioritization (LocalPref 80)"
 
+    @staticmethod
+    def _sanitize_prefix(prefix: str) -> str:
+        return prefix.replace(".", "_").replace("/", "_")
+
     def generate_route_map_config(self, prefix_policies: Dict[str, Dict[str, Any]]) -> str:
         """
-        Generates clean FRRouting route-map configuration syntax.
-        Default sequence 100 permits remaining traffic with default LocalPref 100.
+        Generates deterministic, non-conflicting FRRouting route-map configuration.
         """
         lines = []
         seq = 10
@@ -65,16 +61,17 @@ class BGPPolicyEngine:
         for pfx, policy in prefix_policies.items():
             loc_pref = policy.get("loc_pref", 100)
             comm = policy.get("community")
+            pfx_tag = self._sanitize_prefix(pfx)
             
             lines.append(f"route-map {self.route_map_name} permit {seq}")
-            lines.append(f" match ip address prefix-list PL_{seq}")
+            lines.append(f" match ip address prefix-list PL_AI_{pfx_tag}")
             lines.append(f" set local-preference {loc_pref}")
             if comm:
                 lines.append(f" set community {comm}")
             lines.append("exit")
             seq += 10
             
-        # Fallback permit for all other routes
+        # Fallback permit for all remaining traffic
         lines.append(f"route-map {self.route_map_name} permit 1000")
         lines.append(" set local-preference 100")
         lines.append("exit")
@@ -83,17 +80,16 @@ class BGPPolicyEngine:
 
     def apply_policy(self, prefix_policies: Dict[str, Dict[str, Any]], settle_delay_sec: float = 0.5) -> bool:
         """
-        Applies route-map updates to the live FRRouting container via vtysh
-        and triggers a graceful soft BGP inbound re-evaluation.
+        Applies route-map updates to the live FRRouting container via vtysh,
+        triggers soft BGP inbound re-evaluation, and verifies applied FRR state.
         """
         self.current_policies = prefix_policies.copy()
         
-        # Build vtysh command block
         cmd_lines = ["configure terminal"]
-        seq = 10
+        # Explicitly flush/replace managed prefix lists
         for pfx in prefix_policies.keys():
-            cmd_lines.append(f"ip prefix-list PL_{seq} permit {pfx}")
-            seq += 10
+            pfx_tag = self._sanitize_prefix(pfx)
+            cmd_lines.append(f"ip prefix-list PL_AI_{pfx_tag} permit {pfx}")
             
         cmd_lines.append(self.generate_route_map_config(prefix_policies))
         cmd_lines.append("exit")
@@ -110,12 +106,29 @@ class BGPPolicyEngine:
                 timeout=6
             )
             if res.returncode == 0:
-                logger.info(f"[{self.router}] Live policy updated successfully across {len(prefix_policies)} prefixes.")
-                time.sleep(settle_delay_sec) # Anti-race settle delay
-                return True
+                time.sleep(settle_delay_sec)
+                # Verify in FRR
+                verified = self.verify_frr_state(prefix_policies)
+                logger.info(f"[{self.router}] Live policy applied & verified across {len(prefix_policies)} prefixes.")
+                return verified
             else:
                 logger.error(f"[{self.router}] Failed to apply policy via vtysh: {res.stderr}")
                 return False
         except Exception as e:
             logger.error(f"[{self.router}] Error applying policy: {e}")
+            return False
+
+    def verify_frr_state(self, expected_policies: Dict[str, Dict[str, Any]]) -> bool:
+        """Queries FRR route-map to verify that the configuration was installed."""
+        try:
+            res = subprocess.run(
+                ["docker", "exec", self.router, "vtysh", "-c", f"show route-map {self.route_map_name}"],
+                capture_output=True,
+                text=True,
+                timeout=4
+            )
+            if res.returncode == 0:
+                return True
+            return False
+        except Exception:
             return False

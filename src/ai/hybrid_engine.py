@@ -1,93 +1,117 @@
 """
-Hybrid Decision & Explainability Engine.
-Combines statistical ML classification probabilities with deterministic safety heuristics
-to compute a finalized Trust Score and diagnostic root-cause explanation.
+Hybrid Decision & Multi-Factor Behavioral Trust Scoring Engine.
+Calculates a continuous behavioral trust score based on 6 weighted indicators:
+- Origin stability (20%)
+- AS-Path valley-free adherence & edit distance (20%)
+- 5-minute flap quiescence (15%)
+- Prefix specificity & deaggregation (15%)
+- Neighbor diversity & peer availability (10%)
+- Calibrated ML Model Trust (20%)
 """
 
-from typing import Dict, Any, Tuple
 import numpy as np
-from src.dataset.generator import CLASS_NAMES
+from typing import Dict, Any, List, Optional
+from src.ai.classifier import BGPClassifier
+
+CLASS_NAMES = {
+    0: "Normal",
+    1: "Suspicious",
+    2: "Route Leak Candidate",
+    3: "Prefix Hijack Candidate"
+}
 
 class HybridDecisionEngine:
-    def __init__(self, classifier=None):
-        self.classifier = classifier
+    def __init__(self, classifier: Optional[BGPClassifier] = None):
+        self.classifier = classifier or BGPClassifier()
+        # Explicit Indicator Weights summing to 1.0
+        self.weights = {
+            "origin": 0.20,
+            "path": 0.20,
+            "flap": 0.15,
+            "prefix": 0.15,
+            "peer": 0.10,
+            "ml": 0.20
+        }
 
-    def evaluate(self, prefix: str, current_route: Dict[str, Any],
-                 feature_vector: np.ndarray,
-                 raw_probabilities: np.ndarray) -> Dict[str, Any]:
+    def compute_behavioral_trust(self, feature_vector: np.ndarray, ml_prob_normal: float) -> float:
         """
-        Combines ML probabilities with deterministic rule evaluation.
-        Features mapping:
-        0: as_path_len
-        1: as_path_edit_distance
-        2: origin_as_change
-        3: prefix_mask_len
-        4: announcement_rate
-        5: flap_count_5min
-        6: loc_pref_current
-        7: route_age_seconds
-        8: valley_free_violation
+        Computes the weighted multi-factor behavioral trust score in [0.0, 1.0].
+        Feature indices:
+        0: as_path_len, 1: as_path_edit_distance, 2: origin_as_change,
+        3: prefix_mask_len, 4: announcements_per_minute, 5: flap_count_5min,
+        6: loc_pref_current, 7: route_age_seconds, 8: valley_free_violation,
         9: neighbor_diversity
         """
-        pred_class_id = int(np.argmax(raw_probabilities))
-        ml_confidence = float(raw_probabilities[pred_class_id])
-        
-        origin_changed = bool(feature_vector[2] > 0.5)
-        valley_free_viol = bool(feature_vector[8] > 0.5)
-        high_flaps = bool(feature_vector[5] >= 3)
-        sub_prefix = bool(feature_vector[3] >= 24)
-        
-        reasons = []
-        final_class = pred_class_id
-        final_confidence = ml_confidence
-        
-        # Rule 1: Definitive Hijack Flag (Origin AS change on registered prefix)
-        if origin_changed:
-            final_class = 3 # Prefix Hijack Candidate
-            final_confidence = max(ml_confidence, 0.95)
-            reasons.append(f"Origin AS mismatch: announced AS {current_route.get('origin_as')} differs from historical origin")
+        origin_change = feature_vector[2]
+        mask_len = feature_vector[3]
+        flap_count = feature_vector[5]
+        valley_free = feature_vector[8]
+        edit_dist = feature_vector[1]
+        neighbor_div = feature_vector[9]
 
-        # Rule 2: Valley-free routing violation (Route Leak)
-        elif valley_free_viol:
-            final_class = 2 # Route Leak Candidate
-            final_confidence = max(ml_confidence, 0.90)
-            reasons.append("Valley-Free rule violation: multi-transit peer forwarding detected (RFC 9234)")
+        # 1. Origin Stability: 0.0 if origin changed, else 1.0
+        t_origin = 0.0 if origin_change > 0.5 else 1.0
 
-        # Rule 3: High Flapping / Churn
-        elif high_flaps and final_class == 0:
-            final_class = 1 # Elevate to Suspicious
-            final_confidence = 0.85
-            reasons.append(f"High route oscillation: {int(feature_vector[5])} flaps in 5-minute sliding window")
+        # 2. Path Stability: Penalized by valley-free violation and edit distance
+        t_path = 0.0 if valley_free > 0.5 else max(0.0, 1.0 - (edit_dist * 0.2))
 
-        # Rule 4: Normal Steady State
-        if final_class == 0:
-            reasons.append("Route matches historical origin, AS Path topology, and stable telemetry")
+        # 3. Flap Quiescence: Decays with recent flaps
+        t_flap = max(0.0, 1.0 - (flap_count / 5.0))
 
-        # Compute Dynamic Trust Score (0.0 to 1.0)
-        # Class 0 (Normal) -> Trust 0.90 - 1.00
-        # Class 1 (Suspicious) -> Trust 0.50 - 0.70
-        # Class 2 (Route Leak) -> Trust 0.20 - 0.40
-        # Class 3 (Hijack) -> Trust 0.00 - 0.15
-        if final_class == 0:
-            trust_score = round(float(0.90 + (0.10 * final_confidence)), 3)
-        elif final_class == 1:
-            trust_score = round(float(0.70 - (0.20 * final_confidence)), 3)
-        elif final_class == 2:
-            trust_score = round(float(0.40 - (0.20 * final_confidence)), 3)
-        else: # Hijack
-            trust_score = round(float(0.15 - (0.15 * final_confidence)), 3)
+        # 4. Prefix Legitimacy: Sub-prefix deaggregation (> /24) penalized
+        t_prefix = 0.4 if mask_len > 24.0 else 1.0
+
+        # 5. Peer Consistency
+        t_peer = float(neighbor_div)
+
+        # 6. ML Model Confidence
+        t_ml = float(ml_prob_normal)
+
+        trust = (
+            self.weights["origin"] * t_origin +
+            self.weights["path"] * t_path +
+            self.weights["flap"] * t_flap +
+            self.weights["prefix"] * t_prefix +
+            self.weights["peer"] * t_peer +
+            self.weights["ml"] * t_ml
+        )
+
+        return float(np.clip(trust, 0.0, 1.0))
+
+    def evaluate(self, prefix: str, current_route: Dict[str, Any],
+                 feature_vector: np.ndarray, raw_probabilities: np.ndarray) -> Dict[str, Any]:
+        """
+        Produces explainable decision with multi-factor trust score and reason tags.
+        """
+        predicted_class_id = int(np.argmax(raw_probabilities))
+        confidence = float(np.max(raw_probabilities))
+        prob_normal = float(raw_probabilities[0])
+
+        trust_score = self.compute_behavioral_trust(feature_vector, prob_normal)
+
+        # Generate Explainable Diagnostic Reasons
+        reasons: List[str] = []
+        if feature_vector[2] > 0.5:
+            reasons.append(f"Origin AS mismatch (origin_as_change=1, current_origin={current_route.get('origin_as')})")
+        if feature_vector[8] > 0.5:
+            reasons.append(f"Gao-Rexford valley-free violation detected in AS-path: {current_route.get('as_path')}")
+        if feature_vector[3] > 24.0:
+            reasons.append(f"Sub-prefix deaggregation detected (/{int(feature_vector[3])} > /24)")
+        if feature_vector[5] >= 3.0:
+            reasons.append(f"High route churn ({int(feature_vector[5])} flaps in 5min)")
+        if feature_vector[1] >= 2.0 and feature_vector[8] <= 0.5:
+            reasons.append(f"Significant AS-path edit distance ({int(feature_vector[1])} edits vs baseline)")
+
+        if not reasons:
+            reasons.append("All behavioral indicators and topology relationships normal")
 
         return {
             "prefix": prefix,
-            "classification_id": final_class,
-            "classification_name": CLASS_NAMES.get(final_class, "Unknown"),
-            "confidence": round(final_confidence, 4),
-            "trust_score": trust_score,
+            "classification_id": predicted_class_id,
+            "classification_name": CLASS_NAMES.get(predicted_class_id, "Unknown"),
+            "confidence": confidence,
+            "trust_score": round(trust_score, 2),
             "reasons": reasons,
-            "feature_summary": {
-                "as_path_len": int(feature_vector[0]),
-                "origin_as_changed": origin_changed,
-                "flap_count": int(feature_vector[5]),
-                "valley_free_violation": valley_free_viol
-            }
+            "feature_vector": feature_vector.tolist(),
+            "raw_probabilities": raw_probabilities.tolist()
         }

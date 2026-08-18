@@ -1,13 +1,6 @@
 """
 Transparent Behavioural Heuristic Detector (Rule-Based Baseline).
-Evaluates published static rules over the identical 10-feature vector
-without machine learning inference.
-
-Rules:
-1. Hijack: origin_as_change == 1 OR prefix_mask_len > 24
-2. Leak: as_path_len >= 5 AND valley_free_violation == 1
-3. Suspicious: flap_count_5min >= 3 OR announcement_rate >= 10.0
-4. Normal: Default fallback
+Operates over identical 10-feature vector using standardized announcements_per_minute.
 """
 
 import numpy as np
@@ -20,25 +13,19 @@ class HeuristicDetector:
     def evaluate(self, feature_vector: np.ndarray) -> Dict[str, Any]:
         """
         Features mapping:
-        0: as_path_len
-        1: as_path_edit_distance
-        2: origin_as_change
-        3: prefix_mask_len
-        4: announcement_rate
-        5: flap_count_5min
-        6: loc_pref_current
-        7: route_age_seconds
-        8: valley_free_violation
+        0: as_path_len, 1: as_path_edit_distance, 2: origin_as_change,
+        3: prefix_mask_len, 4: announcements_per_minute, 5: flap_count_5min,
+        6: loc_pref_current, 7: route_age_seconds, 8: valley_free_violation,
         9: neighbor_diversity
         """
         as_path_len = feature_vector[0]
         origin_change = feature_vector[2]
         mask_len = feature_vector[3]
-        rate = feature_vector[4]
-        flaps = feature_vector[5]
+        announcements_per_min = feature_vector[4]
+        flaps_5min = feature_vector[5]
         valley_free = feature_vector[8]
 
-        # Rule 1: Hijack
+        # Rule 1: Hijack (Origin mismatch or deaggregated mask length > /24)
         if origin_change > 0.5 or mask_len > 24.0:
             return {
                 "detected": True,
@@ -49,26 +36,26 @@ class HeuristicDetector:
                 "reason": "Static Rule 1: Origin mismatch or deaggregated mask length > /24"
             }
 
-        # Rule 2: Route Leak
-        if as_path_len >= 5.0 and valley_free > 0.5:
+        # Rule 2: Route Leak (Valley-free violation or long detour path)
+        if valley_free > 0.5 or as_path_len >= 5.0:
             return {
                 "detected": True,
                 "class_id": 2,
                 "class_name": "Route Leak Candidate",
                 "target_loc_pref": 50,
                 "action": "Deprioritize (LocalPref 50)",
-                "reason": "Static Rule 2: AS path length >= 5 and valley-free violation"
+                "reason": "Static Rule 2: AS path length >= 5 or valley-free violation"
             }
 
-        # Rule 3: Flapping / Churn
-        if flaps >= 3.0 or rate >= 10.0:
+        # Rule 3: Flapping / Churn (5min Flaps >= 3 or Announcements >= 10/min)
+        if flaps_5min >= 3.0 or announcements_per_min >= 10.0:
             return {
                 "detected": True,
                 "class_id": 1,
                 "class_name": "Suspicious",
                 "target_loc_pref": 80,
                 "action": "Deprioritize (LocalPref 80)",
-                "reason": f"Static Rule 3: Flap count ({flaps}) >= 3 or announcement rate >= 10/min"
+                "reason": f"Static Rule 3: Flap count ({flaps_5min}) >= 3 or announcement rate >= 10/min"
             }
 
         # Rule 4: Normal

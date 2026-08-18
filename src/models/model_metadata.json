@@ -1,0 +1,26 @@
+{
+  "model_version": "rf-v2.0-calibrated",
+  "feature_version": "v2",
+  "feature_names": [
+    "as_path_len",
+    "as_path_edit_distance",
+    "origin_as_change",
+    "prefix_mask_len",
+    "announcements_per_minute",
+    "flap_count_5min",
+    "loc_pref_current",
+    "route_age_seconds",
+    "valley_free_violation",
+    "neighbor_diversity"
+  ],
+  "n_features": 10,
+  "n_estimators": 50,
+  "training_samples": 7000,
+  "validation_samples": 1500,
+  "test_samples": 1500,
+  "calibrated": true,
+  "calibration_method": "isotonic",
+  "training_seed": 42,
+  "test_macro_f1": 1.0,
+  "test_weighted_f1": 1.0
+}

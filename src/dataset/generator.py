@@ -16,7 +16,7 @@ FEATURE_NAMES = [
     "as_path_edit_distance",
     "origin_as_change",
     "prefix_mask_len",
-    "announcement_rate",
+    "announcements_per_minute",
     "flap_count_5min",
     "loc_pref_current",
     "route_age_seconds",

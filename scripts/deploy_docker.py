@@ -39,15 +39,20 @@ def status():
     print(out if code == 0 else err)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Multi-AS Docker Manager")
-    parser.add_argument("action", choices=["up", "down", "restart", "status"], help="Action to execute")
+    parser = argparse.ArgumentParser(description="Docker Compose Lifecycle Manager for BGP Topology")
+    parser.add_argument("action", nargs="?", choices=["up", "down", "restart", "status"], default=None, help="Action to perform")
+    parser.add_argument("--action", dest="action_flag", choices=["up", "down", "restart", "status"], default=None, help="Alternative action flag")
     args = parser.parse_args()
 
-    if args.action == "up":
+    action = args.action or args.action_flag
+    if not action:
+        parser.error("Must specify an action (up, down, restart, status)")
+
+    if action == "up":
         up()
-    elif args.action == "down":
+    elif action == "down":
         down()
-    elif args.action == "restart":
+    elif action == "restart":
         down()
         time.sleep(2)
         up()

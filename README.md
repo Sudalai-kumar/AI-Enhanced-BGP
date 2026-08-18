@@ -5,7 +5,7 @@
 [![FRRouting](https://img.shields.io/badge/FRRouting-10.2.1-orange.svg)](https://frrouting.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An intelligent, autonomous, and standards-compliant BGP control-plane enhancement that detects and mitigates routing anomalies (prefix hijacks, sub-prefix deaggregations, route leaks, and flapping bursts) in real time using Machine Learning and dynamic BGP Local Preference policies with Shadow Validation and Autonomous Rollback.
+An intelligent, autonomous, and standards-compliant BGP control-plane enhancement that detects and mitigates routing anomalies (prefix hijacks, sub-prefix deaggregations, route leaks, and flapping bursts) in real time using Machine Learning and dynamic BGP Local Preference policies with Shadow Validation and Multi-Criteria Autonomous Rollback.
 
 ---
 
@@ -25,13 +25,13 @@ An intelligent, autonomous, and standards-compliant BGP control-plane enhancemen
 |  [ 10-Feature Behavioral Extractor ] (Gao-Rexford valley-free heuristic + AS-Path Levenshtein)   |
 |                 │                                                                                 |
 |                 ▼                                                                                 |
-|  [ ML Classifier & Hybrid Trust Engine ] (Random Forest & Logistic Regression + Trust Score)      |
+|  [ Calibrated ML Model & Multi-Factor Behavioral Trust Engine ] (CalibratedClassifierCV)         |
 |                 │                                                                                 |
 |                 ▼                                                                                 |
 |  [ Shadow Validator & Anti-Thrashing Guard ] (5s Staging Queue + Hysteresis Band Δ=0.05)         |
 |                 │                                                                                 |
 |                 ▼                                                                                 |
-|  [ Behavioural Policy Engine & Rollback Manager ]                                                 |
+|  [ Policy Engine, Verified FRR Enforcement & SQLite State Store ]                                 |
 |     ├── Normal (Trust ≥ 0.85)     ──► LocalPref 100                                              |
 |     ├── Suspicious (0.55 - 0.80)  ──► LocalPref 80 (Soft Deprioritization)                       |
 |     ├── Route Leak (0.25 - 0.55)  ──► LocalPref 50 (Hard Deprioritization)                       |
@@ -49,15 +49,18 @@ An intelligent, autonomous, and standards-compliant BGP control-plane enhancemen
 3. **Shadow Validation & Anti-Thrashing Safeguards**: 
    - 5.0-second transient staging buffer with strict streak-breaking logic to discard false alarms.
    - Asymmetric hysteresis band ($\Delta = 0.05$) and 10.0s minimum dwell time to eliminate policy thrashing near threshold boundaries.
-4. **Autonomous Rollback & State Restoration**: Automatically tracks anomalous routes and restores `LocalPref` back to `100` once healthy behavior is sustained across 3 consecutive cycles.
-5. **Real-World Incident Replays**: Evaluated against signature replays of major Internet outages:
+4. **Multi-Criteria Autonomous Rollback**: Reverts `LocalPref` to `100` only when ML classification is Normal, AS paths are stable, recent flaps are quiescent, and upstream reachability is verified.
+5. **Relationship-Aware Gao-Rexford Analysis**: Implements RFC 9234 customer-provider-peer business relationship state machines to catch complex transit route leaks.
+6. **Controlled Historical Signature Replays**: Evaluated against faithful topological anomaly signatures of major Internet incidents:
    - *Pakistan Telecom / YouTube Prefix Hijack (2008)*
    - *Google / Rostelecom Route Leak (2017)*
    - *Cloudflare / Verizon Route Leak (2019)*
 
 ---
 
-## 📊 4-Way Comparative Benchmark Results
+## 📊 4-Way Comparative Benchmark Matrix (Preliminary Week-8 Benchmarks)
+
+> **Note on Comparative Positioning**: RPKI Route Origin Validation (ROV - RFC 6811) provides near-instantaneous ($0.05\text{s}$) mitigation for origin-based prefix hijacks, but is fundamentally out of scope for route leaks (S5, S6) because the origin AS remains cryptographically valid. The proposed AI control plane provides comprehensive coverage across all 6 attack classes.
 
 | Scenario | Standard BGP | BGP + RPKI ROV (RFC 6811) | Behavioural Heuristics | Proposed AI Control Plane |
 |---|---|---|---|---|
@@ -74,12 +77,12 @@ An intelligent, autonomous, and standards-compliant BGP control-plane enhancemen
 
 ### 1. Prerequisites
 - **Python**: 3.10 or higher
-- **Docker Desktop**: Running and configured (Linux containers)
+- **Docker Desktop**: Running with Linux containers
 - **Git**
 
 ### 2. Clone the Repository
 ```bash
-git clone https://github.com/<your-username>/<your-repo-name>.git
+git clone https://github.com/Sudalai-kumar/AI-Enhanced-BGP.git
 cd "NDC project"
 ```
 
@@ -90,7 +93,8 @@ python -m pip install -r requirements.txt
 
 ### 4. Deploy the 4-AS Docker Testbed
 ```bash
-python scripts/deploy_docker.py --action up
+python scripts/deploy_docker.py up
+# or: python scripts/deploy_docker.py --action up
 ```
 
 Verify that all 4 FRR containers (`as65001`, `as65002`, `as65003`, `as65004`) are healthy:
@@ -108,8 +112,8 @@ Launch the closed-loop autonomous daemon on monitor node `as65003`:
 python scripts/run_autonomous_controller.py --router as65003
 ```
 
-### 2. Verify Live Anomaly Quarantine & Rollback Lifecycle
-Run the automated end-to-end perturbation test (injected hijack $\rightarrow$ dual quarantine $\rightarrow$ downstream check $\rightarrow$ automatic rollback):
+### 2. Verify Live Anomaly Quarantine & Multi-Criteria Rollback
+Run the automated end-to-end perturbation test:
 ```bash
 python scripts/verify_live_lifecycle.py
 ```
@@ -125,7 +129,6 @@ Generate comparative PDR and MTTM latency graphs:
 ```bash
 python scripts/plot_attack_evaluation.py
 ```
-Generated figures will be saved in `experiments/results/figures/`.
 
 ### 5. Run Unit & Synchronization Tests
 ```bash
@@ -139,28 +142,19 @@ python -m unittest discover tests/
 ```
 .
 ├── config/                     # FRRouting daemon & vtysh configurations for ASes 65001-65004
-│   ├── as65001/
-│   ├── as65002/
-│   ├── as65003/
-│   └── as65004/
 ├── experiments/                # Experimental benchmarking framework
 │   ├── attacks/                # Programmable BGP attack injectors & historical signatures
-│   ├── baseline/               # Week 4 baseline scenarios & latency profiling
+│   ├── baseline/               # Baseline scenarios & latency profiling
 │   ├── comparative/            # 4-way evaluation harness (Standard, RPKI, Heuristics, AI)
 │   └── results/                # Quantitative JSON/CSV datasets and PNG figures
-├── models/                     # Trained ML models (Random Forest, Logistic Regression, Scaler)
+├── models/                     # Trained calibrated ML models and schema metadata
 ├── scripts/                    # Master CLI runners, deploy scripts, and lifecycle testers
-│   ├── deploy_docker.py
-│   ├── run_autonomous_controller.py
-│   ├── run_attack_simulations.py
-│   ├── verify_live_lifecycle.py
-│   └── plot_attack_evaluation.py
 ├── src/                        # Core AI and Control Plane source code
 │   ├── ai/                     # Feature extractor, classifiers, and hybrid trust engine
-│   ├── policy/                 # Policy engine, shadow validator, and rollback manager
+│   ├── policy/                 # Policy engine, shadow validator, rollback manager, and SQLite state store
 │   ├── telemetry/              # FRR collector, sliding window buffer, and SQLite storage
 │   └── utils/                  # Logging and system profiling utilities
-├── tests/                      # Unit test suites (Policy, Shadow, Classifier, Sync)
+├── tests/                      # Unit test suites (Policy, Shadow, Classifier, Feature Extractor)
 ├── topologies/                 # Docker Compose & Containerlab manifests
 ├── requirements.txt            # Python dependencies
 └── README.md                   # Complete documentation
