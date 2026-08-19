@@ -2,7 +2,7 @@
 
 **Project Title:** An AI-Enhanced BGP Control Plane Architecture for Behavioral Route Leak and Hijack Mitigation  
 **Milestone:** Month 1, Week 4 (Baseline Experiments & Performance Profiling)  
-**Date:** 2026-08-16  
+**Date:** 2026-08-16 (Verified 2026-08-19)  
 **Environment:** Containerized FRRouting (FRR 10.2.1) with Point-to-Point Topology Emulation  
 
 ---

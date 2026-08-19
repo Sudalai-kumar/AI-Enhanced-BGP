@@ -1,4 +1,5 @@
 {
+  "benchmark_type": "baseline_unmodified_bgp",
   "iterations": 3,
   "cold_start_convergence": {
     "mean": 5.4659,

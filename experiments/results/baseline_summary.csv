@@ -1,3 +1,4 @@
+# Baseline reference metrics (Unmodified BGP FRR 10.2.1)
 Metric,Mean,StdDev,Min,Max,CV_Percent,Status
 Cold Start Convergence (s),5.4659,0.0408,5.4258,5.5218,0.75%,Stable
 Route Withdrawal Latency (s),9.0427,0.115,8.896,9.177,1.27%,Stable
