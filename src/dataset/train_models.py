@@ -1,7 +1,7 @@
 """
-Standardized BGP Machine Learning Dataset Training Pipeline.
-Calibrates classifiers using explicit stratified 5-fold cross-validation
-and generates complete, per-model metadata artifacts.
+Standardized BGP Machine Learning Dataset Training & Evaluation Pipeline.
+Calibrates classifiers using stratified 5-fold cross-validation,
+saves models/metadata, and automatically updates experiments/results/model_training_evaluation.json.
 """
 
 import os
@@ -14,7 +14,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.metrics import classification_report, f1_score
+from sklearn.metrics import classification_report, f1_score, confusion_matrix
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from src.dataset.generator import generate_bgp_dataset, FEATURE_NAMES
@@ -22,7 +22,9 @@ from src.dataset.generator import generate_bgp_dataset, FEATURE_NAMES
 MODELS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
 RESULTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "experiments", "results"))
 
-def train_and_save_models(n_samples: int = 10000, random_state: int = 42):
+TARGET_NAMES = ["Normal", "Suspicious", "Route Leak Candidate", "Prefix Hijack Candidate"]
+
+def train_and_save_models(n_samples: int = 15000, random_state: int = 42):
     os.makedirs(MODELS_DIR, exist_ok=True)
     os.makedirs(RESULTS_DIR, exist_ok=True)
     print(f"[*] Generating {n_samples} synthetic BGP telemetry samples...")
@@ -60,6 +62,13 @@ def train_and_save_models(n_samples: int = 10000, random_state: int = 42):
     rf_calibrated = CalibratedClassifierCV(estimator=rf_base, cv=5, method="isotonic")
     rf_calibrated.fit(X_train_scaled, y_train)
 
+    # Fit base model separately on train split to extract accurate feature importances
+    rf_base.fit(X_train_scaled, y_train)
+    feature_importances = {
+        name: round(float(imp), 4)
+        for name, imp in zip(FEATURE_NAMES, rf_base.feature_importances_)
+    }
+
     # 2. Train & Calibrate Logistic Regression with 5-Fold Cross Validation
     lr_base = LogisticRegression(
         max_iter=1000,
@@ -72,6 +81,12 @@ def train_and_save_models(n_samples: int = 10000, random_state: int = 42):
     # Evaluate on Test Split
     rf_preds = rf_calibrated.predict(X_test_scaled)
     lr_preds = lr_calibrated.predict(X_test_scaled)
+
+    rf_report = classification_report(y_test, rf_preds, target_names=TARGET_NAMES, output_dict=True)
+    lr_report = classification_report(y_test, lr_preds, target_names=TARGET_NAMES, output_dict=True)
+
+    rf_cm = confusion_matrix(y_test, rf_preds, labels=[0, 1, 2, 3]).tolist()
+    lr_cm = confusion_matrix(y_test, lr_preds, labels=[0, 1, 2, 3]).tolist()
 
     rf_f1_macro = float(f1_score(y_test, rf_preds, average="macro"))
     rf_f1_weighted = float(f1_score(y_test, rf_preds, average="weighted"))
@@ -88,7 +103,7 @@ def train_and_save_models(n_samples: int = 10000, random_state: int = 42):
     # Save comprehensive metadata covering both estimators
     metadata = {
         "model_version": "bgp-v2.0-calibrated",
-        "training_timestamp": "2026-08-18",
+        "training_timestamp": "2026-08-19",
         "feature_count": len(FEATURE_NAMES),
         "feature_names": FEATURE_NAMES,
         "sample_counts": {
@@ -116,7 +131,35 @@ def train_and_save_models(n_samples: int = 10000, random_state: int = 42):
     with open(os.path.join(MODELS_DIR, "model_metadata.json"), "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
 
-    print(f"[+] Artifacts successfully persisted to {MODELS_DIR}/")
+    # Save detailed evaluation report in experiments/results/
+    eval_results = {
+        "dataset_summary": {
+            "total_samples": n_samples,
+            "train_samples": len(X_train),
+            "val_samples": len(X_val),
+            "test_samples": len(X_test),
+            "features": FEATURE_NAMES
+        },
+        "random_forest": {
+            "macro_f1": round(rf_f1_macro, 4),
+            "weighted_f1": round(rf_f1_weighted, 4),
+            "feature_importances": feature_importances,
+            "classification_report": rf_report,
+            "confusion_matrix": rf_cm
+        },
+        "logistic_regression": {
+            "macro_f1": round(lr_f1_macro, 4),
+            "weighted_f1": round(lr_f1_weighted, 4),
+            "classification_report": lr_report,
+            "confusion_matrix": lr_cm
+        }
+    }
+
+    eval_json_path = os.path.join(RESULTS_DIR, "model_training_evaluation.json")
+    with open(eval_json_path, "w", encoding="utf-8") as f:
+        json.dump(eval_results, f, indent=2)
+
+    print(f"[+] Artifacts successfully persisted:\n  - {MODELS_DIR}/\n  - {eval_json_path}")
 
 if __name__ == "__main__":
     train_and_save_models()
