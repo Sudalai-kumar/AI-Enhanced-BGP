@@ -1,0 +1,79 @@
+{
+  "generated_at": "2026-08-20T15:35:24Z",
+  "mode": "MODELLED (dry-run)",
+  "trials_per_scenario": 5,
+  "scenarios": [
+    {
+      "scenario_id": "S1",
+      "name": "Synthetic Direct Prefix Hijack",
+      "scenario_type": "synthetic",
+      "scenario_note": "",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Dry-run mode: values are previously documented estimates, not live measurements. Run without --dry-run on a live FRR testbed to obtain EMPIRICAL measurements.",
+      "mttd_mean_sec": 1.34,
+      "mttd_std_sec": 0.08,
+      "mttm_mean_sec": 1.34,
+      "mttm_std_sec": 0.08
+    },
+    {
+      "scenario_id": "S2",
+      "name": "Synthetic Sub-Prefix Hijack (/25)",
+      "scenario_type": "synthetic",
+      "scenario_note": "",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Dry-run mode: values are previously documented estimates, not live measurements. Run without --dry-run on a live FRR testbed to obtain EMPIRICAL measurements.",
+      "mttd_mean_sec": 4.92,
+      "mttd_std_sec": 0.12,
+      "mttm_mean_sec": 4.92,
+      "mttm_std_sec": 0.12
+    },
+    {
+      "scenario_id": "S3",
+      "name": "Synthetic Route Flapping Burst",
+      "scenario_type": "synthetic",
+      "scenario_note": "",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Dry-run mode: values are previously documented estimates, not live measurements. Run without --dry-run on a live FRR testbed to obtain EMPIRICAL measurements.",
+      "mttd_mean_sec": 15.42,
+      "mttd_std_sec": 0.45,
+      "mttm_mean_sec": 15.42,
+      "mttm_std_sec": 0.45
+    },
+    {
+      "scenario_id": "S4",
+      "name": "Pakistan Telecom / YouTube (2008) \u2014 Topology-Local Replay",
+      "scenario_type": "topology-local behavioral replay",
+      "scenario_note": "This scenario recreates the behavioral signature of the named historical incident (origin hijack pattern) within the four-AS FRR laboratory topology. It is NOT a reproduction of the actual Internet-scale event.",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Dry-run mode: values are previously documented estimates, not live measurements. Run without --dry-run on a live FRR testbed to obtain EMPIRICAL measurements.",
+      "mttd_mean_sec": 4.93,
+      "mttd_std_sec": 0.15,
+      "mttm_mean_sec": 4.93,
+      "mttm_std_sec": 0.15
+    },
+    {
+      "scenario_id": "S5",
+      "name": "Google / Rostelecom Route Leak (2017) \u2014 Topology-Local Replay",
+      "scenario_type": "topology-local behavioral replay",
+      "scenario_note": "This scenario recreates the behavioral signature of the named historical incident (valley-free violation / route leak pattern) within the four-AS FRR laboratory topology. It is NOT a reproduction of the actual Internet-scale event.",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Dry-run mode: values are previously documented estimates, not live measurements. Run without --dry-run on a live FRR testbed to obtain EMPIRICAL measurements.",
+      "mttd_mean_sec": 1.54,
+      "mttd_std_sec": 0.09,
+      "mttm_mean_sec": 1.54,
+      "mttm_std_sec": 0.09
+    },
+    {
+      "scenario_id": "S6",
+      "name": "Cloudflare / Verizon Route Leak (2019) \u2014 Topology-Local Replay",
+      "scenario_type": "topology-local behavioral replay",
+      "scenario_note": "This scenario recreates the behavioral signature of the named historical incident (large-scale route leak pattern) within the four-AS FRR laboratory topology. It is NOT a reproduction of the actual Internet-scale event.",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Dry-run mode: values are previously documented estimates, not live measurements. Run without --dry-run on a live FRR testbed to obtain EMPIRICAL measurements.",
+      "mttd_mean_sec": 1.49,
+      "mttd_std_sec": 0.07,
+      "mttm_mean_sec": 1.49,
+      "mttm_std_sec": 0.07
+    }
+  ]
+}

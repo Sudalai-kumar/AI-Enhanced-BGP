@@ -1,0 +1,15 @@
+{
+  "generated_at": "2026-08-20T15:45:57Z",
+  "git_commit": "777d551dfbb3b7c8521ac621e7ce2529ce1eba36",
+  "python_version": "3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "docker_version": "Docker version 29.7.2, build a7dcaa6",
+  "frr_image": "frrouting/frr:10.2.1",
+  "frr_image_digest": "not-pulled-locally",
+  "requirements_txt_sha256": "822d66c47186bdcfcacab4a46f9828bd5294773005a77c527d8c69e01734765e",
+  "requirements_lock_sha256": "e1acf881dddeb605ffe39700f40e57c72ddb6e16fc14650aa7d032fa33bd926e",
+  "model_rf_sha256": "f41dfe7ec0e775d2acdff5aabc6341133d787edfb476dd69844e2b9736d60568",
+  "model_lr_sha256": "a65e625b00f69f309765a6784ae5bd0464f711ebaa2d5da4b0a77a5bae907f4f",
+  "model_scaler_sha256": "2cf77f110c51d45bf0fb8215a13faf85c8008e678838542f2fd3051be4a3277a",
+  "model_metadata_sha256": "a003beeef814e26d44770c2bfeaa054a9184ed65aca8d35f049d6fd4442a52db"
+}

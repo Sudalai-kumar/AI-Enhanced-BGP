@@ -1,6 +1,11 @@
 {
-  "model_version": "bgp-v2.0-calibrated",
-  "training_timestamp": "2026-08-19",
+  "model_version": "bgp-v3.0-calibrated-overlapping",
+  "training_timestamp": "2026-08-20T15:35:19.068090Z",
+  "git_commit": "3a56f95998d49ad62ad0642cc80f19531bee81d8",
+  "evaluation_method": "cross_seed_holdout",
+  "evaluation_method_note": "Training and test sets are generated independently using different random seeds (train_seed=42, test_seed=99). This prevents within-generator correlation. This is NOT a temporal holdout and does not claim temporal ordering.",
+  "train_seed": 42,
+  "test_seed": 99,
   "feature_count": 10,
   "feature_names": [
     "as_path_len",
@@ -15,23 +20,30 @@
     "neighbor_diversity"
   ],
   "sample_counts": {
-    "total": 15000,
-    "train": 10499,
-    "val": 2251,
-    "test": 2250
+    "train": 15000,
+    "test": 15000,
+    "false_positive_challenge": 1000
+  },
+  "dataset_sha256": {
+    "train": "5b2d40b37538d0e4020948f9ee1f9005fcbfe3ed5f4077c2afc85aa37697e1ab",
+    "test": "3e6487c2e7ca8f2294e3a638deb66a2938bf579fb1461fee330f12e6a7d062ac"
   },
   "models": {
     "random_forest": {
       "algorithm": "RandomForestClassifier (50 estimators, max_depth=12)",
       "calibration": "CalibratedClassifierCV (5-fold, isotonic)",
       "test_macro_f1": 1.0,
-      "test_weighted_f1": 1.0
+      "test_weighted_f1": 1.0,
+      "false_positive_rate": 0.261,
+      "model_sha256": "f41dfe7ec0e775d2acdff5aabc6341133d787edfb476dd69844e2b9736d60568"
     },
     "logistic_regression": {
       "algorithm": "LogisticRegression (max_iter=1000, balanced)",
       "calibration": "CalibratedClassifierCV (5-fold, sigmoid)",
-      "test_macro_f1": 1.0,
-      "test_weighted_f1": 1.0
+      "test_macro_f1": 0.9998,
+      "test_weighted_f1": 0.9998,
+      "false_positive_rate": 0.289,
+      "model_sha256": "a65e625b00f69f309765a6784ae5bd0464f711ebaa2d5da4b0a77a5bae907f4f"
     }
   }
 }

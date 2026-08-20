@@ -1,10 +1,18 @@
 """
-Production Closed-Loop Autonomous BGP Controller.
+Production Closed-Loop Autonomous BGP Controller (Synchronous Polling Architecture).
+
+Architecture note:
+  This controller uses a synchronous polling loop — not an event-driven async framework.
+  Each iteration (step) collects telemetry, classifies prefixes, makes policy decisions,
+  and applies FRR configuration changes sequentially before sleeping for poll_interval.
+  This is intentional for lab reproducibility and deterministic state management.
+
 Features:
 - Startup State Reconciliation against Live FRR State.
 - Non-corrupting State Store Persistence.
 - Strict Atomic Policy Application with Rollback on Failure.
 - Live FRR Reachability Checking for Multi-Criteria Recovery.
+- Detection and Mitigation Event Recording for Live MTTD/MTTM Measurement.
 """
 
 import time
@@ -33,19 +41,19 @@ class AutonomousBGPController:
         self.router = router
         self.peer_ip = peer_ip
         self.interval = poll_interval
-        
+
         # Telemetry & AI Pipeline
         self.collector = FRRTelemetryCollector(router_container=router, poll_interval=poll_interval, total_configured_peers=total_configured_peers)
         self.feature_extractor = BGPFeatureExtractor()
         self.classifier = BGPClassifier(model_type=model_type)
         self.decision_engine = HybridDecisionEngine(classifier=self.classifier)
-        
+
         # Policy, Safeguards & State Store
         self.policy_engine = BGPPolicyEngine(router=router, peer_ip=peer_ip)
         self.shadow_validator = ShadowValidator(shadow_duration_sec=shadow_sec, required_consecutive_ticks=2)
         self.rollback_manager = RollbackManager(required_normal_ticks=3)
         self.state_store = ControllerStateStore()
-        
+
         # True Reconciliation between SQLite and Live FRR
         self.active_policies: Dict[str, Dict[str, Any]] = {}
         self._reconcile_startup_state()
@@ -55,7 +63,7 @@ class AutonomousBGPController:
         """Reconciles persisted SQLite policies against verified live FRR state on startup."""
         stored_policies = self.state_store.get_all_active_policies()
         frr_verified = self.policy_engine.verify_frr_state(stored_policies) if stored_policies else True
-        
+
         if frr_verified:
             self.active_policies = stored_policies
             logger.info(f"[{self.router}] Reconciled and verified {len(self.active_policies)} active policies against live FRR.")
@@ -72,26 +80,27 @@ class AutonomousBGPController:
                 self.active_policies = {}
 
     def step(self):
-        """Executes a single observation, classification, trust scoring, and policy enforcement cycle."""
+        """Executes a single synchronous observation, classification, trust scoring,
+        and policy enforcement cycle."""
         # 1. Telemetry Ingestion with System Metrics & RIB Transition Tracking
         self.collector.collect_bgp_summary()
         self.collector.collect_system_metrics()
         route_rib = self.collector.collect_route_rib()
         routes = route_rib.get("routes", [])
-        
+
         if not routes:
             return
 
         policy_updates_pending = False
         new_active_state = self.active_policies.copy()
-        
+
         # Track pending policy metadata so we don't corrupt classification_id or trust
         pending_meta: Dict[str, Dict[str, Any]] = {}
 
         for r in routes:
             prefix = r["prefix"]
             history = self.collector.buffer.get_history(prefix)
-            
+
             # 2. Extract Features with Configured Peer Denominator
             features = self.feature_extractor.extract_features(
                 prefix=prefix,
@@ -100,7 +109,7 @@ class AutonomousBGPController:
                 active_neighbors_announcing=r.get("active_neighbors", 1),
                 total_known_peers=self.collector.total_configured_peers
             )
-            
+
             # 3. Model Inference & Multi-Factor Trust Scoring
             pred_class, probs = self.classifier.predict(features)
             decision = self.decision_engine.evaluate(
@@ -109,25 +118,25 @@ class AutonomousBGPController:
                 feature_vector=features,
                 raw_probabilities=probs
             )
-            
+
             trust = decision["trust_score"]
             c_name = decision["classification_name"]
             c_id = decision["classification_id"]
-            
+
             current_applied_lp = self.active_policies.get(prefix, {}).get("loc_pref", 100)
-            
+
             # 4. Map Trust to Policy Action
             target_lp, target_comm, action_desc = self.policy_engine.map_trust_to_policy(
                 trust_score=trust,
                 class_id=c_id,
                 current_loc_pref=current_applied_lp
             )
-            
+
             logger.info(
                 f"[{self.router}] Prefix: {prefix:16} | Status: {c_name:22} | "
                 f"Trust: {trust:.2f} | Current LP: {current_applied_lp:3} -> Target LP: {target_lp:3} | Action: {action_desc}"
             )
-            
+
             # 5. Multi-Criteria Rollback vs Escalation
             if c_id == 0:
                 origin_stable = (features[2] == 0.0)
@@ -135,7 +144,7 @@ class AutonomousBGPController:
                 flaps_quiescent = (features[5] == 0.0)
                 # Verify real FRR reachability of the next hop
                 is_reachable = self.collector.verify_nexthop_reachability(self.peer_ip)
-                
+
                 should_rollback, rb_status = self.rollback_manager.process_observation(
                     prefix=prefix,
                     is_normal=True,
@@ -144,14 +153,14 @@ class AutonomousBGPController:
                     flaps_quiescent=flaps_quiescent,
                     frr_reachable=is_reachable
                 )
-                
+
                 if should_rollback and current_applied_lp != 100:
                     logger.info(f"[{prefix}] Multi-Criteria Health Confirmed: Triggering Rollback to LP 100.")
                     new_active_state.pop(prefix, None)
                     policy_updates_pending = True
             else:
                 self.rollback_manager.process_observation(prefix, is_normal=False)
-                
+
                 if target_lp != current_applied_lp or target_comm != self.active_policies.get(prefix, {}).get("community"):
                     should_promote, shadow_status = self.shadow_validator.submit_observation(
                         prefix=prefix,
@@ -160,9 +169,18 @@ class AutonomousBGPController:
                         class_id=c_id,
                         current_live_loc_pref=current_applied_lp
                     )
-                    
+
                     if should_promote:
                         logger.warning(f"[{prefix}] Promoting Shadow Policy to LIVE: LP={target_lp}, Comm={target_comm}")
+
+                        # Record detection timestamp BEFORE apply_policy.
+                        # This timestamp is used to compute MTTD independently of MTTM.
+                        self.state_store.record_detection(
+                            prefix=prefix,
+                            class_id=c_id,
+                            trust_score=trust
+                        )
+
                         new_active_state[prefix] = {
                             "loc_pref": target_lp,
                             "community": target_comm,
@@ -188,6 +206,14 @@ class AutonomousBGPController:
                     c_id = pol.get("classification_id", 3)
                     t_score = pol.get("trust_score", 0.0)
                     self.state_store.save_policy(pfx, pol["loc_pref"], pol.get("community"), c_id, t_score, verified=True)
+
+                # Record mitigation timestamp AFTER successful FRR application.
+                # MTTM = mitigated_at - t_attack_injected (measured independently of MTTD).
+                for pfx in pending_meta:
+                    mitigated = self.state_store.record_mitigation(pfx)
+                    if mitigated:
+                        logger.info(f"[{pfx}] Mitigation timestamp recorded in detection_events.")
+
                 # Remove restored prefixes from persistent store
                 for pfx in list(self.state_store.get_all_active_policies().keys()):
                     if pfx not in self.active_policies:
@@ -197,12 +223,14 @@ class AutonomousBGPController:
                 logger.error(f"[{self.router}] FRR state verification failed! Rolling back memory to previous state.")
 
     def run(self, duration: Optional[float] = None):
-        """Runs the continuous autonomous control loop."""
+        """Runs the continuous synchronous polling control loop."""
         logger.info(f"Starting Autonomous BGP Controller on [{self.router}]...")
         self.running = True
         start_time = time.time()
-        
+
         try:
+            # Synchronous polling loop: step() -> sleep(interval) -> repeat.
+            # Not event-driven; every iteration is sequential and blocking.
             while self.running:
                 self.step()
                 if duration and (time.time() - start_time) >= duration:
@@ -212,6 +240,7 @@ class AutonomousBGPController:
             logger.info("Autonomous Controller stopped by operator.")
         finally:
             self.running = False
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Autonomous BGP Controller")

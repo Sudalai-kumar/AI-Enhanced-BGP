@@ -1,10 +1,15 @@
 """
-Asynchronous AI Control Plane Agent.
-Executes an event loop adjacent to FRRouting on AS65003:
+Autonomous Polling-Based AI Control Plane Agent.
+Executes a synchronous polling control loop adjacent to FRRouting on AS65003:
 1. Ingests live telemetry from FRR (via sliding-window buffer).
 2. Extracts 10 normalized features per prefix.
 3. Performs ML classification & hybrid trust scoring.
 4. Logs real-time decisions to SQLite and issues diagnostic alerts.
+
+Architecture note:
+  This agent uses a synchronous polling loop (not an event-driven async framework).
+  Each call to process_iteration() is sequential and blocking.  This is intentional
+  for lab reproducibility and simplicity.
 """
 
 import time
@@ -37,7 +42,7 @@ class BGPAIAgent:
         # 1. Collect live RIB and Peer state
         peer_summary = self.collector.collect_bgp_summary()
         route_rib = self.collector.collect_route_rib()
-        
+
         routes = route_rib.get("routes", [])
         if not routes:
             logger.info(f"[{self.router}] No active routes in RIB.")
@@ -46,7 +51,7 @@ class BGPAIAgent:
         for r in routes:
             prefix = r["prefix"]
             history = self.collector.buffer.get_history(prefix)
-            
+
             # 2. Extract 10-feature vector
             features = self.feature_extractor.extract_features(
                 prefix=prefix,
@@ -54,12 +59,12 @@ class BGPAIAgent:
                 sliding_window_events=history,
                 active_neighbors_announcing=1
             )
-            
+
             # 3. Model Inference
             start_infer = time.time()
             pred_class, probs = self.classifier.predict(features)
             infer_duration_ms = (time.time() - start_infer) * 1000.0
-            
+
             # 4. Hybrid Decision & Trust Scoring
             decision = self.decision_engine.evaluate(
                 prefix=prefix,
@@ -67,18 +72,18 @@ class BGPAIAgent:
                 feature_vector=features,
                 raw_probabilities=probs
             )
-            
+
             # 5. Structured Alert Logging
             c_name = decision["classification_name"]
             trust = decision["trust_score"]
             conf = decision["confidence"]
             reasons = "; ".join(decision["reasons"])
-            
+
             log_msg = (
                 f"[{self.router}] Prefix: {prefix:16} | Status: {c_name:22} | "
                 f"Trust: {trust:.2f} | Conf: {conf*100:.1f}% | Inference: {infer_duration_ms:.2f}ms | Reason: {reasons}"
             )
-            
+
             if decision["classification_id"] == 0:
                 logger.info(log_msg)
             elif decision["classification_id"] == 1:
@@ -87,12 +92,13 @@ class BGPAIAgent:
                 logger.error(log_msg)
 
     def run(self, duration: Optional[float] = None):
-        """Runs the continuous asynchronous agent event loop."""
+        """Runs the continuous synchronous polling control loop."""
         logger.info(f"Starting AI Control Plane Agent on [{self.router}] (Interval: {self.interval}s)...")
         self.running = True
         start_time = time.time()
-        
+
         try:
+            # Synchronous polling loop: process_iteration() -> sleep -> repeat.
             while self.running:
                 self.process_iteration()
                 if duration and (time.time() - start_time) >= duration:
@@ -103,6 +109,7 @@ class BGPAIAgent:
             logger.info("AI Agent loop stopped by operator.")
         finally:
             self.running = False
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="BGP AI Agent")

@@ -2,9 +2,12 @@
   {
     "scenario_id": "S1",
     "scenario_name": "Synthetic Direct Prefix Hijack",
+    "scenario_type": "synthetic",
     "injected_prefix": "192.0.2.0/24",
     "standard_bgp": {
       "config": "Standard BGP",
+      "evidence_level": "ANALYTICAL",
+      "evidence_note": "Standard BGP has no anomaly detection mechanism. Non-detection is derived from protocol specification, not measurement.",
       "mode": "Protocol Standard Baseline",
       "detected": false,
       "mttd_sec": "N/A (No Detection Mechanism)",
@@ -17,6 +20,8 @@
     },
     "rpki_rov": {
       "config": "BGP + RPKI ROV",
+      "evidence_level": "EMULATED",
+      "evidence_note": "RFC 6811 ingestion model. RPKI ROV behaviour is emulated based on the standard; no live RPKI cache or validator is deployed in the testbed.",
       "mode": "RFC 6811 Ingestion Model",
       "detected": true,
       "mttd_sec": "< 0.10s (Prefix Invalidation)",
@@ -29,6 +34,8 @@
     },
     "heuristics": {
       "config": "Behavioural Heuristics",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Static rule-based baseline. 50ms detection threshold and 92% PDR are assumed values from literature; not measured in this testbed.",
       "mode": "Static Rule-Based Baseline",
       "detected": true,
       "mttd_sec": 0.5,
@@ -41,6 +48,9 @@
     },
     "proposed_ai": {
       "config": "Proposed AI Control Plane",
+      "evidence_level": "EMPIRICAL",
+      "evidence_note": "Live autonomous measurement on the four-AS FRR testbed. MTTD and MTTM are recorded independently via detection_events table.",
+      "mttd_equals_mttm_note": "In earlier evaluations MTTD=MTTM because both were derived from policy-state changes. With the detection_events table, MTTD (shadow-promotion time) and MTTM (apply_policy success time) are now independent measurements.",
       "mode": "Live Autonomous Measurement",
       "detected": true,
       "mttd_sec": 1.34,
@@ -61,9 +71,12 @@
   {
     "scenario_id": "S2",
     "scenario_name": "Synthetic Sub-Prefix Hijack (/25)",
+    "scenario_type": "synthetic",
     "injected_prefix": "192.0.2.0/25",
     "standard_bgp": {
       "config": "Standard BGP",
+      "evidence_level": "ANALYTICAL",
+      "evidence_note": "Standard BGP has no anomaly detection mechanism. Non-detection is derived from protocol specification.",
       "mode": "Protocol Standard Baseline",
       "detected": false,
       "mttd_sec": "N/A (No Detection Mechanism)",
@@ -76,6 +89,8 @@
     },
     "rpki_rov": {
       "config": "BGP + RPKI ROV",
+      "evidence_level": "EMULATED",
+      "evidence_note": "RFC 6811 ingestion model. Sub-prefix hijacks are outside ROV scope \u2014 ROV only invalidates prefixes with mismatched origin ASN for the exact prefix in the RPKI database.",
       "mode": "RFC 6811 Ingestion Model",
       "detected": false,
       "mttd_sec": "N/A",
@@ -88,6 +103,8 @@
     },
     "heuristics": {
       "config": "Behavioural Heuristics",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Static rule-based baseline. Threshold values assumed.",
       "mode": "Static Rule-Based Baseline",
       "detected": true,
       "mttd_sec": 0.5,
@@ -100,6 +117,8 @@
     },
     "proposed_ai": {
       "config": "Proposed AI Control Plane",
+      "evidence_level": "EMPIRICAL",
+      "evidence_note": "Live autonomous measurement on the four-AS FRR testbed.",
       "mode": "Live Autonomous Measurement",
       "detected": true,
       "mttd_sec": 4.92,
@@ -120,9 +139,12 @@
   {
     "scenario_id": "S3",
     "scenario_name": "Synthetic Route Flapping Burst",
+    "scenario_type": "synthetic",
     "injected_prefix": "192.0.2.0/24",
     "standard_bgp": {
       "config": "Standard BGP",
+      "evidence_level": "ANALYTICAL",
+      "evidence_note": "Standard BGP has no churn detection. Hold-timer behaviour is protocol-defined.",
       "mode": "Protocol Standard Baseline",
       "detected": false,
       "mttd_sec": "N/A (No Detection Mechanism)",
@@ -135,6 +157,8 @@
     },
     "rpki_rov": {
       "config": "BGP + RPKI ROV",
+      "evidence_level": "EMULATED",
+      "evidence_note": "RFC 6811 ingestion model. Route flapping is outside RPKI ROV scope.",
       "mode": "RFC 6811 Ingestion Model",
       "detected": false,
       "mttd_sec": "N/A",
@@ -147,6 +171,8 @@
     },
     "heuristics": {
       "config": "Behavioural Heuristics",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Static rule-based baseline. Threshold values assumed.",
       "mode": "Static Rule-Based Baseline",
       "detected": true,
       "mttd_sec": 0.5,
@@ -159,6 +185,8 @@
     },
     "proposed_ai": {
       "config": "Proposed AI Control Plane",
+      "evidence_level": "EMPIRICAL",
+      "evidence_note": "Live autonomous measurement on the four-AS FRR testbed.",
       "mode": "Live Autonomous Measurement",
       "detected": true,
       "mttd_sec": 15.42,
@@ -179,9 +207,13 @@
   {
     "scenario_id": "S4",
     "scenario_name": "Pakistan Telecom / YouTube (2008)",
+    "scenario_type": "topology-local behavioral replay",
+    "scenario_note": "This scenario recreates the behavioral signature of the named historical incident (path anomaly type, origin manipulation pattern) within the four-AS FRR laboratory topology. It is not a reproduction of the actual Internet-scale event and does not claim to replicate the original routing table state, propagation scope, or traffic volume.",
     "injected_prefix": "208.65.153.0/24",
     "standard_bgp": {
       "config": "Standard BGP",
+      "evidence_level": "ANALYTICAL",
+      "evidence_note": "Standard BGP has no anomaly detection. Non-detection is derived from protocol specification.",
       "mode": "Protocol Standard Baseline",
       "detected": false,
       "mttd_sec": "N/A (No Detection Mechanism)",
@@ -194,6 +226,8 @@
     },
     "rpki_rov": {
       "config": "BGP + RPKI ROV",
+      "evidence_level": "EMULATED",
+      "evidence_note": "RFC 6811 ingestion model. The historical prefix would have been caught by ROV; emulated here against the lab prefix.",
       "mode": "RFC 6811 Ingestion Model",
       "detected": true,
       "mttd_sec": "< 0.10s (Prefix Invalidation)",
@@ -206,6 +240,8 @@
     },
     "heuristics": {
       "config": "Behavioural Heuristics",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Static rule-based baseline. Threshold values assumed.",
       "mode": "Static Rule-Based Baseline",
       "detected": true,
       "mttd_sec": 0.5,
@@ -218,6 +254,8 @@
     },
     "proposed_ai": {
       "config": "Proposed AI Control Plane",
+      "evidence_level": "EMPIRICAL",
+      "evidence_note": "Live autonomous measurement on the four-AS FRR testbed using the topology-local behavioral replay of this incident.",
       "mode": "Live Autonomous Measurement",
       "detected": true,
       "mttd_sec": 4.93,
@@ -238,9 +276,13 @@
   {
     "scenario_id": "S5",
     "scenario_name": "Google / Rostelecom Route Leak (2017)",
+    "scenario_type": "topology-local behavioral replay",
+    "scenario_note": "This scenario recreates the behavioral signature of the named historical incident (path anomaly type, origin manipulation pattern) within the four-AS FRR laboratory topology. It is not a reproduction of the actual Internet-scale event and does not claim to replicate the original routing table state, propagation scope, or traffic volume.",
     "injected_prefix": "192.0.2.0/24",
     "standard_bgp": {
       "config": "Standard BGP",
+      "evidence_level": "ANALYTICAL",
+      "evidence_note": "Standard BGP has no route leak detection. Non-detection is derived from protocol specification.",
       "mode": "Protocol Standard Baseline",
       "detected": false,
       "mttd_sec": "N/A (No Detection Mechanism)",
@@ -253,6 +295,8 @@
     },
     "rpki_rov": {
       "config": "BGP + RPKI ROV",
+      "evidence_level": "EMULATED",
+      "evidence_note": "RFC 6811 ingestion model. Route leaks are outside RPKI ROV scope; emulated as accepted.",
       "mode": "RFC 6811 Ingestion Model",
       "detected": false,
       "mttd_sec": "N/A (Out of Scope)",
@@ -265,6 +309,8 @@
     },
     "heuristics": {
       "config": "Behavioural Heuristics",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Static rule-based baseline. Threshold values assumed.",
       "mode": "Static Rule-Based Baseline",
       "detected": true,
       "mttd_sec": 0.5,
@@ -277,6 +323,8 @@
     },
     "proposed_ai": {
       "config": "Proposed AI Control Plane",
+      "evidence_level": "EMPIRICAL",
+      "evidence_note": "Live autonomous measurement on the four-AS FRR testbed using the topology-local behavioral replay of this incident.",
       "mode": "Live Autonomous Measurement",
       "detected": true,
       "mttd_sec": 1.54,
@@ -297,9 +345,13 @@
   {
     "scenario_id": "S6",
     "scenario_name": "Cloudflare / Verizon Route Leak (2019)",
+    "scenario_type": "topology-local behavioral replay",
+    "scenario_note": "This scenario recreates the behavioral signature of the named historical incident (path anomaly type, origin manipulation pattern) within the four-AS FRR laboratory topology. It is not a reproduction of the actual Internet-scale event and does not claim to replicate the original routing table state, propagation scope, or traffic volume.",
     "injected_prefix": "192.0.2.0/24",
     "standard_bgp": {
       "config": "Standard BGP",
+      "evidence_level": "ANALYTICAL",
+      "evidence_note": "Standard BGP has no route leak detection. Non-detection is derived from protocol specification.",
       "mode": "Protocol Standard Baseline",
       "detected": false,
       "mttd_sec": "N/A (No Detection Mechanism)",
@@ -312,6 +364,8 @@
     },
     "rpki_rov": {
       "config": "BGP + RPKI ROV",
+      "evidence_level": "EMULATED",
+      "evidence_note": "RFC 6811 ingestion model. Route leaks are outside RPKI ROV scope; emulated as accepted.",
       "mode": "RFC 6811 Ingestion Model",
       "detected": false,
       "mttd_sec": "N/A (Out of Scope)",
@@ -324,6 +378,8 @@
     },
     "heuristics": {
       "config": "Behavioural Heuristics",
+      "evidence_level": "MODELLED",
+      "evidence_note": "Static rule-based baseline. Threshold values assumed.",
       "mode": "Static Rule-Based Baseline",
       "detected": true,
       "mttd_sec": 0.5,
@@ -336,6 +392,8 @@
     },
     "proposed_ai": {
       "config": "Proposed AI Control Plane",
+      "evidence_level": "EMPIRICAL",
+      "evidence_note": "Live autonomous measurement on the four-AS FRR testbed using the topology-local behavioral replay of this incident.",
       "mode": "Live Autonomous Measurement",
       "detected": true,
       "mttd_sec": 1.49,

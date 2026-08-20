@@ -1,9 +1,12 @@
 {
+  "evaluation_method": "cross_seed_holdout",
+  "evaluation_method_note": "Training and test sets are generated independently using different random seeds (train_seed=42, test_seed=99). This prevents within-generator correlation. This is NOT a temporal holdout and does not claim temporal ordering.",
+  "training_timestamp": "2026-08-20T15:35:19.068090Z",
+  "git_commit": "3a56f95998d49ad62ad0642cc80f19531bee81d8",
   "dataset_summary": {
-    "total_samples": 15000,
-    "train_samples": 10499,
-    "val_samples": 2251,
-    "test_samples": 2250,
+    "train_samples": 15000,
+    "test_samples": 15000,
+    "false_positive_challenge_samples": 1000,
     "features": [
       "as_path_len",
       "as_path_edit_distance",
@@ -15,156 +18,164 @@
       "route_age_seconds",
       "valley_free_violation",
       "neighbor_diversity"
-    ]
+    ],
+    "dataset_sha256": {
+      "train": "5b2d40b37538d0e4020948f9ee1f9005fcbfe3ed5f4077c2afc85aa37697e1ab",
+      "test": "3e6487c2e7ca8f2294e3a638deb66a2938bf579fb1461fee330f12e6a7d062ac"
+    }
   },
   "random_forest": {
     "macro_f1": 1.0,
     "weighted_f1": 1.0,
+    "false_positive_rate": 0.261,
     "feature_importances": {
-      "as_path_len": 0.1481,
-      "as_path_edit_distance": 0.0807,
-      "origin_as_change": 0.1173,
-      "prefix_mask_len": 0.008,
-      "announcements_per_minute": 0.0313,
-      "flap_count_5min": 0.2338,
-      "loc_pref_current": 0.0267,
-      "route_age_seconds": 0.2257,
-      "valley_free_violation": 0.1284,
-      "neighbor_diversity": 0.0
+      "as_path_len": 0.1999,
+      "as_path_edit_distance": 0.1091,
+      "origin_as_change": 0.0218,
+      "prefix_mask_len": 0.017,
+      "announcements_per_minute": 0.08,
+      "flap_count_5min": 0.2016,
+      "loc_pref_current": 0.0474,
+      "route_age_seconds": 0.2658,
+      "valley_free_violation": 0.0571,
+      "neighbor_diversity": 0.0002
     },
     "classification_report": {
       "Normal": {
         "precision": 1.0,
         "recall": 1.0,
         "f1-score": 1.0,
-        "support": 1350.0
+        "support": 9000.0
       },
       "Suspicious": {
         "precision": 1.0,
         "recall": 1.0,
         "f1-score": 1.0,
-        "support": 338.0
+        "support": 2250.0
       },
       "Route Leak Candidate": {
         "precision": 1.0,
         "recall": 1.0,
         "f1-score": 1.0,
-        "support": 225.0
+        "support": 1500.0
       },
       "Prefix Hijack Candidate": {
         "precision": 1.0,
         "recall": 1.0,
         "f1-score": 1.0,
-        "support": 337.0
+        "support": 2250.0
       },
       "accuracy": 1.0,
       "macro avg": {
         "precision": 1.0,
         "recall": 1.0,
         "f1-score": 1.0,
-        "support": 2250.0
+        "support": 15000.0
       },
       "weighted avg": {
         "precision": 1.0,
         "recall": 1.0,
         "f1-score": 1.0,
-        "support": 2250.0
+        "support": 15000.0
       }
     },
     "confusion_matrix": [
       [
-        1350,
+        9000,
         0,
         0,
         0
       ],
       [
         0,
-        338,
+        2250,
         0,
         0
       ],
       [
         0,
         0,
-        225,
+        1500,
         0
       ],
       [
         0,
         0,
         0,
-        337
+        2250
       ]
-    ]
+    ],
+    "model_sha256": "f41dfe7ec0e775d2acdff5aabc6341133d787edfb476dd69844e2b9736d60568"
   },
   "logistic_regression": {
-    "macro_f1": 1.0,
-    "weighted_f1": 1.0,
+    "macro_f1": 0.9998,
+    "weighted_f1": 0.9998,
+    "false_positive_rate": 0.289,
     "classification_report": {
       "Normal": {
-        "precision": 1.0,
+        "precision": 0.9996667777407531,
         "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 1350.0
+        "f1-score": 0.9998333611064822,
+        "support": 9000.0
       },
       "Suspicious": {
         "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 338.0
+        "recall": 0.9995555555555555,
+        "f1-score": 0.9997777283840854,
+        "support": 2250.0
       },
       "Route Leak Candidate": {
         "precision": 1.0,
         "recall": 1.0,
         "f1-score": 1.0,
-        "support": 225.0
+        "support": 1500.0
       },
       "Prefix Hijack Candidate": {
         "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 337.0
-      },
-      "accuracy": 1.0,
-      "macro avg": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
+        "recall": 0.9991111111111111,
+        "f1-score": 0.9995553579368608,
         "support": 2250.0
+      },
+      "accuracy": 0.9998,
+      "macro avg": {
+        "precision": 0.9999166944351883,
+        "recall": 0.9996666666666666,
+        "f1-score": 0.999791611856857,
+        "support": 15000.0
       },
       "weighted avg": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 2250.0
+        "precision": 0.9998000666444519,
+        "recall": 0.9998,
+        "f1-score": 0.9997999796120313,
+        "support": 15000.0
       }
     },
     "confusion_matrix": [
       [
-        1350,
+        9000,
         0,
         0,
         0
       ],
       [
-        0,
-        338,
+        1,
+        2249,
         0,
         0
       ],
       [
         0,
         0,
-        225,
+        1500,
         0
       ],
       [
+        2,
         0,
         0,
-        0,
-        337
+        2248
       ]
-    ]
+    ],
+    "model_sha256": "a65e625b00f69f309765a6784ae5bd0464f711ebaa2d5da4b0a77a5bae907f4f"
   }
 }

@@ -1,25 +1,25 @@
-Scenario_ID,Scenario_Name,Configuration,Evaluation_Mode,Detected,MTTD_sec,MTTM_sec,PDR_Percent,Action,Precision,Recall,F1_Score
-S1,Synthetic Direct Prefix Hijack,Standard BGP,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
-S1,Synthetic Direct Prefix Hijack,BGP + RPKI ROV,RFC 6811 Ingestion Model,True,< 0.10s (Prefix Invalidation),< 0.10s (FIB Invalidation),100.0,DROPPED (ROV Invalidation),1.0,1.0,1.0
-S1,Synthetic Direct Prefix Hijack,Behavioural Heuristics,Static Rule-Based Baseline,True,0.5,0.6,92.0,Quarantine (LocalPref 0),0.92,0.92,0.92
-S1,Synthetic Direct Prefix Hijack,Proposed AI Control Plane,Live Autonomous Measurement,True,1.34,1.34,100.0,LocalPref 0 + no-export,1.0,1.0,1.0
-S2,Synthetic Sub-Prefix Hijack (/25),Standard BGP,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
-S2,Synthetic Sub-Prefix Hijack (/25),BGP + RPKI ROV,RFC 6811 Ingestion Model,False,N/A,N/A,0.0,ACCEPTED,0.0,0.0,0.0
-S2,Synthetic Sub-Prefix Hijack (/25),Behavioural Heuristics,Static Rule-Based Baseline,True,0.5,0.6,92.0,Quarantine (LocalPref 0),0.92,0.92,0.92
-S2,Synthetic Sub-Prefix Hijack (/25),Proposed AI Control Plane,Live Autonomous Measurement,True,4.92,4.92,100.0,LocalPref 0 + no-export,1.0,1.0,1.0
-S3,Synthetic Route Flapping Burst,Standard BGP,Protocol Standard Baseline,False,N/A (No Detection Mechanism),9.04s (Hold-Timer Reset),50.0,None (Propagated),0.0,0.0,0.0
-S3,Synthetic Route Flapping Burst,BGP + RPKI ROV,RFC 6811 Ingestion Model,False,N/A,N/A,0.0,ACCEPTED,0.0,0.0,0.0
-S3,Synthetic Route Flapping Burst,Behavioural Heuristics,Static Rule-Based Baseline,True,0.5,4.3,92.0,Deprioritize (LocalPref 80),0.92,0.92,0.92
-S3,Synthetic Route Flapping Burst,Proposed AI Control Plane,Live Autonomous Measurement,True,15.42,15.42,100.0,LocalPref 80,1.0,1.0,1.0
-S4,Pakistan Telecom / YouTube (2008),Standard BGP,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
-S4,Pakistan Telecom / YouTube (2008),BGP + RPKI ROV,RFC 6811 Ingestion Model,True,< 0.10s (Prefix Invalidation),< 0.10s (FIB Invalidation),100.0,DROPPED (ROV Invalidation),1.0,1.0,1.0
-S4,Pakistan Telecom / YouTube (2008),Behavioural Heuristics,Static Rule-Based Baseline,True,0.5,0.6,92.0,Quarantine (LocalPref 0),0.92,0.92,0.92
-S4,Pakistan Telecom / YouTube (2008),Proposed AI Control Plane,Live Autonomous Measurement,True,4.93,4.93,100.0,LocalPref 0 + no-export,1.0,1.0,1.0
-S5,Google / Rostelecom Route Leak (2017),Standard BGP,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
-S5,Google / Rostelecom Route Leak (2017),BGP + RPKI ROV,RFC 6811 Ingestion Model,False,N/A (Out of Scope),N/A (Out of Scope),0.0,ACCEPTED (Out of Scope),N/A,N/A (Out of Scope),N/A
-S5,Google / Rostelecom Route Leak (2017),Behavioural Heuristics,Static Rule-Based Baseline,True,0.5,0.6,92.0,Deprioritize (LocalPref 50),0.92,0.92,0.92
-S5,Google / Rostelecom Route Leak (2017),Proposed AI Control Plane,Live Autonomous Measurement,True,1.54,1.54,100.0,LocalPref 50,1.0,1.0,1.0
-S6,Cloudflare / Verizon Route Leak (2019),Standard BGP,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
-S6,Cloudflare / Verizon Route Leak (2019),BGP + RPKI ROV,RFC 6811 Ingestion Model,False,N/A (Out of Scope),N/A (Out of Scope),0.0,ACCEPTED (Out of Scope),N/A,N/A (Out of Scope),N/A
-S6,Cloudflare / Verizon Route Leak (2019),Behavioural Heuristics,Static Rule-Based Baseline,True,0.5,0.6,92.0,Deprioritize (LocalPref 50),0.92,0.92,0.92
-S6,Cloudflare / Verizon Route Leak (2019),Proposed AI Control Plane,Live Autonomous Measurement,True,1.49,1.49,100.0,LocalPref 50,1.0,1.0,1.0
+Scenario_ID,Scenario_Name,Scenario_Type,Configuration,Evidence_Level,Evaluation_Mode,Detected,MTTD_sec,MTTM_sec,PDR_Percent,Action,Precision,Recall,F1_Score
+S1,Synthetic Direct Prefix Hijack,synthetic,Standard BGP,ANALYTICAL,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
+S1,Synthetic Direct Prefix Hijack,synthetic,BGP + RPKI ROV,EMULATED,RFC 6811 Ingestion Model,True,< 0.10s (Prefix Invalidation),< 0.10s (FIB Invalidation),100.0,DROPPED (ROV Invalidation),1.0,1.0,1.0
+S1,Synthetic Direct Prefix Hijack,synthetic,Behavioural Heuristics,MODELLED,Static Rule-Based Baseline,True,0.5,0.6,92.0,Quarantine (LocalPref 0),0.92,0.92,0.92
+S1,Synthetic Direct Prefix Hijack,synthetic,Proposed AI Control Plane,EMPIRICAL,Live Autonomous Measurement,True,1.34,1.34,100.0,LocalPref 0 + no-export,1.0,1.0,1.0
+S2,Synthetic Sub-Prefix Hijack (/25),synthetic,Standard BGP,ANALYTICAL,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
+S2,Synthetic Sub-Prefix Hijack (/25),synthetic,BGP + RPKI ROV,EMULATED,RFC 6811 Ingestion Model,False,N/A,N/A,0.0,ACCEPTED,0.0,0.0,0.0
+S2,Synthetic Sub-Prefix Hijack (/25),synthetic,Behavioural Heuristics,MODELLED,Static Rule-Based Baseline,True,0.5,0.6,92.0,Quarantine (LocalPref 0),0.92,0.92,0.92
+S2,Synthetic Sub-Prefix Hijack (/25),synthetic,Proposed AI Control Plane,EMPIRICAL,Live Autonomous Measurement,True,4.92,4.92,100.0,LocalPref 0 + no-export,1.0,1.0,1.0
+S3,Synthetic Route Flapping Burst,synthetic,Standard BGP,ANALYTICAL,Protocol Standard Baseline,False,N/A (No Detection Mechanism),9.04s (Hold-Timer Reset),50.0,None (Propagated),0.0,0.0,0.0
+S3,Synthetic Route Flapping Burst,synthetic,BGP + RPKI ROV,EMULATED,RFC 6811 Ingestion Model,False,N/A,N/A,0.0,ACCEPTED,0.0,0.0,0.0
+S3,Synthetic Route Flapping Burst,synthetic,Behavioural Heuristics,MODELLED,Static Rule-Based Baseline,True,0.5,4.3,92.0,Deprioritize (LocalPref 80),0.92,0.92,0.92
+S3,Synthetic Route Flapping Burst,synthetic,Proposed AI Control Plane,EMPIRICAL,Live Autonomous Measurement,True,15.42,15.42,100.0,LocalPref 80,1.0,1.0,1.0
+S4,Pakistan Telecom / YouTube (2008),topology-local behavioral replay,Standard BGP,ANALYTICAL,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
+S4,Pakistan Telecom / YouTube (2008),topology-local behavioral replay,BGP + RPKI ROV,EMULATED,RFC 6811 Ingestion Model,True,< 0.10s (Prefix Invalidation),< 0.10s (FIB Invalidation),100.0,DROPPED (ROV Invalidation),1.0,1.0,1.0
+S4,Pakistan Telecom / YouTube (2008),topology-local behavioral replay,Behavioural Heuristics,MODELLED,Static Rule-Based Baseline,True,0.5,0.6,92.0,Quarantine (LocalPref 0),0.92,0.92,0.92
+S4,Pakistan Telecom / YouTube (2008),topology-local behavioral replay,Proposed AI Control Plane,EMPIRICAL,Live Autonomous Measurement,True,4.93,4.93,100.0,LocalPref 0 + no-export,1.0,1.0,1.0
+S5,Google / Rostelecom Route Leak (2017),topology-local behavioral replay,Standard BGP,ANALYTICAL,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
+S5,Google / Rostelecom Route Leak (2017),topology-local behavioral replay,BGP + RPKI ROV,EMULATED,RFC 6811 Ingestion Model,False,N/A (Out of Scope),N/A (Out of Scope),0.0,ACCEPTED (Out of Scope),N/A,N/A (Out of Scope),N/A
+S5,Google / Rostelecom Route Leak (2017),topology-local behavioral replay,Behavioural Heuristics,MODELLED,Static Rule-Based Baseline,True,0.5,0.6,92.0,Deprioritize (LocalPref 50),0.92,0.92,0.92
+S5,Google / Rostelecom Route Leak (2017),topology-local behavioral replay,Proposed AI Control Plane,EMPIRICAL,Live Autonomous Measurement,True,1.54,1.54,100.0,LocalPref 50,1.0,1.0,1.0
+S6,Cloudflare / Verizon Route Leak (2019),topology-local behavioral replay,Standard BGP,ANALYTICAL,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
+S6,Cloudflare / Verizon Route Leak (2019),topology-local behavioral replay,BGP + RPKI ROV,EMULATED,RFC 6811 Ingestion Model,False,N/A (Out of Scope),N/A (Out of Scope),0.0,ACCEPTED (Out of Scope),N/A,N/A (Out of Scope),N/A
+S6,Cloudflare / Verizon Route Leak (2019),topology-local behavioral replay,Behavioural Heuristics,MODELLED,Static Rule-Based Baseline,True,0.5,0.6,92.0,Deprioritize (LocalPref 50),0.92,0.92,0.92
+S6,Cloudflare / Verizon Route Leak (2019),topology-local behavioral replay,Proposed AI Control Plane,EMPIRICAL,Live Autonomous Measurement,True,1.49,1.49,100.0,LocalPref 50,1.0,1.0,1.0
