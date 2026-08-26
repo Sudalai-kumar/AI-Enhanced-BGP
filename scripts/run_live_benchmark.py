@@ -1,10 +1,10 @@
-﻿"""
-Live MTTD / MTTM Benchmark Harness for the AI-Enhanced BGP Controller.
+"""
+Live MTTD / MTTM Benchmark Harness for the AI-Enhanced BGP Controller (Async-enabled).
 
 This script measures detection and mitigation latency end-to-end by:
-  1. Starting (or attaching to) the AutonomousBGPController subprocess.
-  2. Injecting each attack scenario via existing attack scripts or inject_failure.py.
-  3. Polling the detection_events SQLite table (written by the controller) every 100ms.
+  1. Communicating with running AutonomousBGPController.
+  2. Injecting each attack scenario via BGPAttackInjector.
+  3. Polling the detection_events SQLite table (written by the controller).
   4. Recording MTTD = detected_at - t0 and MTTM = mitigated_at - t0 independently.
   5. Repeating each scenario N trials and reporting mean +/- std.
   6. Writing results to experiments/results/live_benchmark_results.json.
@@ -18,47 +18,46 @@ Requirements: Docker + running FRR topology (docker compose up -d).
 import argparse
 import json
 import os
-import subprocess
 import sys
 import time
 import statistics
 import sqlite3
+import asyncio
 from typing import Optional, List, Dict, Any
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from src.utils.async_utils import configure_asyncio_policy
+from experiments.attacks.attack_injector import BGPAttackInjector
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 _DB_PATH = os.path.join(_REPO_ROOT, "data", "controller_state.db")
 _RESULTS_DIR = os.path.join(_REPO_ROOT, "experiments", "results")
-_ATTACKS_DIR = os.path.join(_REPO_ROOT, "experiments", "attacks")
 
 # --- Scenario definitions --------------------------------------------------
-# Each scenario specifies the prefix being attacked and the attack script to run.
-# The attack script is called as a subprocess with no arguments; it is expected
-# to inject the attack and return immediately.
 SCENARIO_REGISTRY: Dict[str, Dict[str, Any]] = {
     "S1": {
         "name": "Synthetic Direct Prefix Hijack",
         "prefix": "192.0.2.0/24",
-        "attack_script": os.path.join(_ATTACKS_DIR, "inject_direct_hijack.py"),
+        "action_type": "direct_hijack",
         "scenario_type": "synthetic",
     },
     "S2": {
         "name": "Synthetic Sub-Prefix Hijack (/25)",
         "prefix": "192.0.2.0/25",
-        "attack_script": os.path.join(_ATTACKS_DIR, "inject_subprefix_hijack.py"),
+        "action_type": "subprefix_hijack",
         "scenario_type": "synthetic",
     },
     "S3": {
         "name": "Synthetic Route Flapping Burst",
         "prefix": "192.0.2.0/24",
-        "attack_script": os.path.join(_ATTACKS_DIR, "inject_flapping.py"),
+        "action_type": "burst_flapping",
         "scenario_type": "synthetic",
     },
     "S4": {
         "name": "Pakistan Telecom / YouTube (2008) — Topology-Local Replay",
         "prefix": "208.65.153.0/24",
-        "attack_script": os.path.join(_ATTACKS_DIR, "inject_direct_hijack.py"),
+        "action_type": "historical",
+        "incident_key": "youtube_2008_hijack",
         "scenario_type": "topology-local behavioral replay",
         "scenario_note": (
             "This scenario recreates the behavioral signature of the named historical incident "
@@ -69,7 +68,8 @@ SCENARIO_REGISTRY: Dict[str, Dict[str, Any]] = {
     "S5": {
         "name": "Google / Rostelecom Route Leak (2017) — Topology-Local Replay",
         "prefix": "192.0.2.0/24",
-        "attack_script": os.path.join(_ATTACKS_DIR, "inject_route_leak.py"),
+        "action_type": "historical",
+        "incident_key": "google_2017_route_leak",
         "scenario_type": "topology-local behavioral replay",
         "scenario_note": (
             "This scenario recreates the behavioral signature of the named historical incident "
@@ -80,7 +80,8 @@ SCENARIO_REGISTRY: Dict[str, Dict[str, Any]] = {
     "S6": {
         "name": "Cloudflare / Verizon Route Leak (2019) — Topology-Local Replay",
         "prefix": "192.0.2.0/24",
-        "attack_script": os.path.join(_ATTACKS_DIR, "inject_route_leak.py"),
+        "action_type": "historical",
+        "incident_key": "cloudflare_2019_route_leak",
         "scenario_type": "topology-local behavioral replay",
         "scenario_note": (
             "This scenario recreates the behavioral signature of the named historical incident "
@@ -101,12 +102,8 @@ MODELLED_VALUES: Dict[str, Dict[str, Any]] = {
 }
 
 
-def _poll_detection(prefix: str, t0: float, timeout_sec: float = 60.0,
-                    poll_interval: float = 0.1) -> Optional[float]:
-    """
-    Polls the detection_events table until a row appears for prefix with
-    detected_at > t0.  Returns detected_at, or None if timeout expires.
-    """
+def _poll_detection_sync(prefix: str, t0: float, timeout_sec: float = 60.0,
+                         poll_interval: float = 0.1) -> Optional[float]:
     deadline = t0 + timeout_sec
     while time.time() < deadline:
         try:
@@ -125,12 +122,8 @@ def _poll_detection(prefix: str, t0: float, timeout_sec: float = 60.0,
     return None
 
 
-def _poll_mitigation(prefix: str, t0: float, timeout_sec: float = 60.0,
-                     poll_interval: float = 0.1) -> Optional[float]:
-    """
-    Polls the detection_events table until mitigated_at is set for the most
-    recent open detection row for prefix after t0.  Returns mitigated_at.
-    """
+def _poll_mitigation_sync(prefix: str, t0: float, timeout_sec: float = 60.0,
+                          poll_interval: float = 0.1) -> Optional[float]:
     deadline = t0 + timeout_sec
     while time.time() < deadline:
         try:
@@ -149,26 +142,28 @@ def _poll_mitigation(prefix: str, t0: float, timeout_sec: float = 60.0,
     return None
 
 
-def _inject_attack(script_path: str) -> bool:
-    """Runs the attack script as a subprocess. Returns True on success."""
-    if not os.path.exists(script_path):
-        print(f"  [!] Attack script not found: {script_path}")
-        return False
-    result = subprocess.run([sys.executable, script_path], capture_output=True, text=True, timeout=30)
-    if result.returncode != 0:
-        print(f"  [!] Attack script failed: {result.stderr.strip()}")
-        return False
-    return True
+async def _inject_scenario_attack(injector: BGPAttackInjector, scenario: Dict[str, Any]) -> bool:
+    """Invokes the corresponding attack function asynchronously."""
+    action = scenario.get("action_type")
+    prefix = scenario.get("prefix", "192.0.2.0/24")
+
+    if action == "direct_hijack":
+        return await injector.inject_direct_hijack(prefix=prefix, rogue_origin_as=65004)
+    elif action == "subprefix_hijack":
+        return await injector.inject_subprefix_hijack(subprefix=prefix, rogue_origin_as=65004)
+    elif action == "burst_flapping":
+        await injector.inject_burst_flapping(prefix=prefix, cycles=3, interval=0.3)
+        return True
+    elif action == "historical":
+        key = scenario.get("incident_key")
+        return await injector.inject_historical_replay(key)
+    return False
 
 
-def _reset_scenario(prefix: str):
-    """Brief pause to allow routing state to stabilise between trials."""
-    time.sleep(5.0)
-
-
-def run_live_scenario(scenario_id: str, scenario: Dict[str, Any],
-                      n_trials: int = 5, timeout_sec: float = 60.0) -> Dict[str, Any]:
-    """Measures MTTD and MTTM for a scenario over n_trials trials."""
+async def run_live_scenario_async(scenario_id: str, scenario: Dict[str, Any],
+                                 injector: BGPAttackInjector,
+                                 n_trials: int = 5, timeout_sec: float = 60.0) -> Dict[str, Any]:
+    """Measures MTTD and MTTM for a scenario over n_trials trials asynchronously."""
     print(f"\n[*] Running scenario {scenario_id}: {scenario['name']}")
     mttd_samples: List[float] = []
     mttm_samples: List[float] = []
@@ -177,21 +172,23 @@ def run_live_scenario(scenario_id: str, scenario: Dict[str, Any],
         print(f"  Trial {trial}/{n_trials}...", end=" ", flush=True)
         t0 = time.time()
 
-        ok = _inject_attack(scenario["attack_script"])
+        ok = await _inject_scenario_attack(injector, scenario)
         if not ok:
-            print(f"SKIP (attack injection failed)")
+            print("SKIP (attack injection failed)")
             continue
 
-        detected_at = _poll_detection(scenario["prefix"], t0, timeout_sec=timeout_sec)
+        detected_at = await asyncio.to_thread(_poll_detection_sync, scenario["prefix"], t0, timeout_sec)
         if detected_at is None:
             print(f"TIMEOUT (no detection within {timeout_sec}s)")
-            _reset_scenario(scenario["prefix"])
+            await injector.cleanup_all_attacks()
+            await asyncio.sleep(4.0)
             continue
 
-        mitigated_at = _poll_mitigation(scenario["prefix"], t0, timeout_sec=timeout_sec)
+        mitigated_at = await asyncio.to_thread(_poll_mitigation_sync, scenario["prefix"], t0, timeout_sec)
         if mitigated_at is None:
             print(f"TIMEOUT (detection at {detected_at - t0:.2f}s but no mitigation)")
-            _reset_scenario(scenario["prefix"])
+            await injector.cleanup_all_attacks()
+            await asyncio.sleep(4.0)
             continue
 
         mttd = detected_at - t0
@@ -199,7 +196,8 @@ def run_live_scenario(scenario_id: str, scenario: Dict[str, Any],
         mttd_samples.append(mttd)
         mttm_samples.append(mttm)
         print(f"MTTD={mttd:.2f}s  MTTM={mttm:.2f}s")
-        _reset_scenario(scenario["prefix"])
+        await injector.cleanup_all_attacks()
+        await asyncio.sleep(4.0)
 
     if not mttd_samples:
         return {
@@ -258,6 +256,42 @@ def run_dry_run(scenario_ids: List[str]) -> List[Dict[str, Any]]:
     return results
 
 
+async def main_async(args):
+    scenario_ids = [s.strip() for s in args.scenarios.split(",")]
+    for sid in scenario_ids:
+        if sid not in SCENARIO_REGISTRY:
+            print(f"[!] Unknown scenario: {sid}. Valid: {list(SCENARIO_REGISTRY.keys())}")
+            sys.exit(1)
+
+    os.makedirs(os.path.dirname(args.output), exist_ok=True)
+
+    if args.dry_run:
+        print("[*] Dry-run mode: returning MODELLED values (not live measurements).")
+        results = run_dry_run(scenario_ids)
+    else:
+        injector = BGPAttackInjector()
+        results = []
+        for sid in scenario_ids:
+            r = await run_live_scenario_async(
+                sid, SCENARIO_REGISTRY[sid],
+                injector=injector,
+                n_trials=args.trials,
+                timeout_sec=args.timeout
+            )
+            results.append(r)
+
+    out = {
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "mode": "MODELLED (dry-run)" if args.dry_run else "EMPIRICAL (live testbed)",
+        "trials_per_scenario": args.trials,
+        "scenarios": results
+    }
+
+    with open(args.output, "w", encoding="utf-8") as f:
+        json.dump(out, f, indent=2)
+    print(f"\n[+] Results written to: {args.output}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Live MTTD/MTTM Benchmark for AI-Enhanced BGP")
     parser.add_argument(
@@ -282,37 +316,8 @@ def main():
     )
     args = parser.parse_args()
 
-    scenario_ids = [s.strip() for s in args.scenarios.split(",")]
-    for sid in scenario_ids:
-        if sid not in SCENARIO_REGISTRY:
-            print(f"[!] Unknown scenario: {sid}. Valid: {list(SCENARIO_REGISTRY.keys())}")
-            sys.exit(1)
-
-    os.makedirs(os.path.dirname(args.output), exist_ok=True)
-
-    if args.dry_run:
-        print("[*] Dry-run mode: returning MODELLED values (not live measurements).")
-        results = run_dry_run(scenario_ids)
-    else:
-        results = []
-        for sid in scenario_ids:
-            r = run_live_scenario(
-                sid, SCENARIO_REGISTRY[sid],
-                n_trials=args.trials,
-                timeout_sec=args.timeout
-            )
-            results.append(r)
-
-    out = {
-        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "mode": "MODELLED (dry-run)" if args.dry_run else "EMPIRICAL (live testbed)",
-        "trials_per_scenario": args.trials,
-        "scenarios": results
-    }
-
-    with open(args.output, "w", encoding="utf-8") as f:
-        json.dump(out, f, indent=2)
-    print(f"\n[+] Results written to: {args.output}")
+    configure_asyncio_policy()
+    asyncio.run(main_async(args))
 
 
 if __name__ == "__main__":

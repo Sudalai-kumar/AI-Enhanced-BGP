@@ -1,5 +1,5 @@
 """
-SQLite-backed Persistent Controller State Store.
+SQLite-backed Persistent Controller State Store with asyncio.to_thread support.
 Persists active policy overrides, classifications, and trust history across controller restarts.
 Also records detection and mitigation timestamps for live MTTD/MTTM measurement.
 """
@@ -7,6 +7,7 @@ Also records detection and mitigation timestamps for live MTTD/MTTM measurement.
 import sqlite3
 import os
 import time
+import asyncio
 import contextlib
 from typing import Dict, Any, Optional
 
@@ -17,7 +18,7 @@ class ControllerStateStore:
     def __init__(self, db_path: str = DB_PATH):
         self.db_path = db_path
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        self._init_db()
+        self._db_lock = asyncio.Lock()
 
     @contextlib.contextmanager
     def _get_connection(self):
@@ -31,9 +32,8 @@ class ControllerStateStore:
         finally:
             conn.close()
 
-    def _init_db(self):
+    def _init_db_sync(self):
         with self._get_connection() as conn:
-            # Table 1: active policy overrides (unchanged)
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS active_policies (
                     prefix TEXT PRIMARY KEY,
@@ -47,11 +47,6 @@ class ControllerStateStore:
             """)
             conn.execute("CREATE INDEX IF NOT EXISTS idx_active_pfx ON active_policies(prefix);")
 
-            # Table 2: detection and mitigation event log for live MTTD/MTTM measurement.
-            # detected_at  -- epoch seconds when the controller first classifies the prefix
-            #                 as anomalous and promotes it out of the shadow queue.
-            # mitigated_at -- epoch seconds when apply_policy() succeeds for this event;
-            #                 NULL until mitigation is confirmed.
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS detection_events (
                     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,12 +62,16 @@ class ControllerStateStore:
                 "ON detection_events(prefix, detected_at);"
             )
 
+    async def initialize(self) -> None:
+        """Explicitly awaitable database initializer."""
+        await asyncio.to_thread(self._init_db_sync)
+
     # ------------------------------------------------------------------
-    # Active policy methods (unchanged behaviour)
+    # Synchronous private implementations
     # ------------------------------------------------------------------
 
-    def save_policy(self, prefix: str, loc_pref: int, community: Optional[str],
-                    classification_id: int, trust_score: float, verified: bool = False):
+    def _save_policy_sync(self, prefix: str, loc_pref: int, community: Optional[str],
+                          classification_id: int, trust_score: float, verified: bool = False):
         with self._get_connection() as conn:
             conn.execute("""
                 INSERT OR REPLACE INTO active_policies
@@ -81,11 +80,11 @@ class ControllerStateStore:
             """, (prefix, loc_pref, community, classification_id, trust_score,
                   time.time(), 1 if verified else 0))
 
-    def remove_policy(self, prefix: str):
+    def _remove_policy_sync(self, prefix: str):
         with self._get_connection() as conn:
             conn.execute("DELETE FROM active_policies WHERE prefix = ?", (prefix,))
 
-    def get_all_active_policies(self) -> Dict[str, Dict[str, Any]]:
+    def _get_all_active_policies_sync(self) -> Dict[str, Dict[str, Any]]:
         policies = {}
         with self._get_connection() as conn:
             cursor = conn.cursor()
@@ -104,17 +103,7 @@ class ControllerStateStore:
                 }
         return policies
 
-    # ------------------------------------------------------------------
-    # Detection event methods (new — used for live MTTD/MTTM measurement)
-    # ------------------------------------------------------------------
-
-    def record_detection(self, prefix: str, class_id: int, trust_score: float) -> int:
-        """
-        Records the moment the controller first promotes a shadow-staged anomaly to
-        live action.  Inserts a new row with detected_at=now, mitigated_at=NULL.
-
-        Returns the new row's id so the caller can correlate it with record_mitigation.
-        """
+    def _record_detection_sync(self, prefix: str, class_id: int, trust_score: float) -> int:
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
@@ -125,13 +114,7 @@ class ControllerStateStore:
             )
             return cursor.lastrowid
 
-    def record_mitigation(self, prefix: str) -> bool:
-        """
-        Stamps mitigated_at=now on the most recent open (mitigated_at IS NULL)
-        detection row for the given prefix.
-
-        Returns True if a row was updated, False if no open row was found.
-        """
+    def _record_mitigation_sync(self, prefix: str) -> bool:
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
@@ -150,13 +133,7 @@ class ControllerStateStore:
             )
             return cursor.rowcount > 0
 
-    def get_latest_detection(self, prefix: str) -> Optional[Dict[str, Any]]:
-        """
-        Returns the most recent detection_events row for prefix as a dict,
-        or None if no row exists.
-
-        Fields: id, prefix, detected_at, class_id, trust_score, mitigated_at
-        """
+    def _get_latest_detection_sync(self, prefix: str) -> Optional[Dict[str, Any]]:
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
@@ -179,3 +156,32 @@ class ControllerStateStore:
                 "trust_score": row[4],
                 "mitigated_at": row[5],
             }
+
+    # ------------------------------------------------------------------
+    # Public async API
+    # ------------------------------------------------------------------
+
+    async def save_policy(self, prefix: str, loc_pref: int, community: Optional[str],
+                          classification_id: int, trust_score: float, verified: bool = False):
+        async with self._db_lock:
+            await asyncio.to_thread(
+                self._save_policy_sync, prefix, loc_pref, community, classification_id, trust_score, verified
+            )
+
+    async def remove_policy(self, prefix: str):
+        async with self._db_lock:
+            await asyncio.to_thread(self._remove_policy_sync, prefix)
+
+    async def get_all_active_policies(self) -> Dict[str, Dict[str, Any]]:
+        return await asyncio.to_thread(self._get_all_active_policies_sync)
+
+    async def record_detection(self, prefix: str, class_id: int, trust_score: float) -> int:
+        async with self._db_lock:
+            return await asyncio.to_thread(self._record_detection_sync, prefix, class_id, trust_score)
+
+    async def record_mitigation(self, prefix: str) -> bool:
+        async with self._db_lock:
+            return await asyncio.to_thread(self._record_mitigation_sync, prefix)
+
+    async def get_latest_detection(self, prefix: str) -> Optional[Dict[str, Any]]:
+        return await asyncio.to_thread(self._get_latest_detection_sync, prefix)

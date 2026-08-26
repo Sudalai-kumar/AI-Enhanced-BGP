@@ -1,5 +1,5 @@
 """
-Unified Comparative Benchmark Evaluator.
+Unified Comparative Benchmark Evaluator (Async-enabled).
 Distinguishes Live Measurements from Emulated Baselines.
 Properly handles Censored/Timeout Observations (no artificial timeout-to-latency conversion).
 Derives reported actions from actual observed FRR state.
@@ -10,6 +10,7 @@ import json
 import csv
 import os
 import sys
+import asyncio
 import numpy as np
 from typing import Dict, Any, List
 
@@ -25,6 +26,7 @@ from src.ai.classifier import BGPClassifier
 from src.ai.hybrid_engine import HybridDecisionEngine
 from scripts.run_autonomous_controller import AutonomousBGPController
 from src.utils.logger import setup_logger
+from src.utils.async_utils import configure_asyncio_policy
 
 logger = setup_logger("benchmark_evaluator")
 RESULTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results"))
@@ -39,13 +41,13 @@ class ComparativeEvaluator:
         self.classifier = BGPClassifier(model_type="random_forest")
         self.decision_engine = HybridDecisionEngine(classifier=self.classifier)
 
-    def run_live_scenario_benchmark(self, scenario_key: str,
-                                     injection_fn, cleanup_fn,
-                                     iterations: int = 3,
-                                     max_eval_steps: int = 15,
-                                     step_delay_sec: float = 0.2) -> Dict[str, Any]:
+    async def run_live_scenario_benchmark(self, scenario_key: str,
+                                          injection_fn, cleanup_fn,
+                                          iterations: int = 3,
+                                          max_eval_steps: int = 15,
+                                          step_delay_sec: float = 0.2) -> Dict[str, Any]:
         """
-        Runs empirical multi-iteration measurement on the running testbed.
+        Runs empirical multi-iteration measurement on the running testbed asynchronously.
         Properly handles right-censored data (timeouts) without converting timeouts into latency measurements.
         """
         meta = GROUND_TRUTH_SCENARIOS[scenario_key]
@@ -70,19 +72,19 @@ class ComparativeEvaluator:
         y_pred_heur_stream = []
 
         controller = AutonomousBGPController(router="as65003", peer_ip="10.0.23.2", poll_interval=0.4, shadow_sec=2.0)
+        await controller._initialize()
         observed_final_action = "None (Propagated)"
 
         for it in range(1, iterations + 1):
             logger.info(f"--> Iteration {it}/{iterations}...")
             # 1. Baseline Reset
-            cleanup_fn()
-            controller.policy_engine.apply_policy({injected_pfx: {"loc_pref": 100, "community": None}}, settle_delay_sec=0.2)
-            time.sleep(0.4)
-            controller.step()
+            await cleanup_fn()
+            await controller.policy_engine.apply_policy({injected_pfx: {"loc_pref": 100, "community": None}}, settle_delay_sec=0.2)
+            await asyncio.sleep(0.4)
 
             # 2. Attack Injection
             t0 = time.perf_counter()
-            injection_fn()
+            await injection_fn()
 
             # 3. Live Evaluation Loop
             detected = False
@@ -91,14 +93,17 @@ class ComparativeEvaluator:
             it_mttm = None
 
             for step_idx in range(max_eval_steps):
-                time.sleep(step_delay_sec)
-                controller.step()
+                await asyncio.sleep(step_delay_sec)
                 now_elapsed = time.perf_counter() - t0
 
-                # Check AI Decision on the targeted prefix
-                route_data = controller.collector.buffer.get_history(injected_pfx)
-                if route_data:
-                    current_r = route_data[-1]
+                # Sample snapshot and check AI Decision on the targeted prefix
+                snapshot = await controller.collector.collect_snapshot(snapshot_id=step_idx + 1)
+                route_items = snapshot.get("routes_with_history", [])
+                target_item = next((item for item in route_items if item["route"]["prefix"] == injected_pfx), None)
+
+                if target_item:
+                    current_r = target_item["route"]
+                    route_data = target_item["history"]
                     feats = controller.feature_extractor.extract_features(
                         prefix=injected_pfx,
                         current_route=current_r,
@@ -142,8 +147,8 @@ class ComparativeEvaluator:
 
             pdr_trials.append(100.0 if mitigated else (50.0 if is_flap else 0.0))
 
-            cleanup_fn()
-            time.sleep(0.3)
+            await cleanup_fn()
+            await asyncio.sleep(0.3)
 
         # Distinguish detected from right-censored (timed-out) measurements
         ai_detected = len(mttd_trials) > 0
@@ -259,47 +264,47 @@ class ComparativeEvaluator:
             "proposed_ai": cfg4_res
         }
 
-    def run_all_benchmarks(self, iterations: int = 3) -> List[Dict[str, Any]]:
+    async def run_all_benchmarks(self, iterations: int = 3) -> List[Dict[str, Any]]:
         os.makedirs(RESULTS_DIR, exist_ok=True)
         results = []
 
         # S1: Direct Prefix Hijack
-        s1 = self.run_live_scenario_benchmark(
+        s1 = await self.run_live_scenario_benchmark(
             "S1", injection_fn=lambda: self.injector.inject_direct_hijack("192.0.2.0/24", 65004),
             cleanup_fn=self.injector.cleanup_all_attacks, iterations=iterations
         )
         results.append(s1)
 
         # S2: Sub-prefix Hijack (/25)
-        s2 = self.run_live_scenario_benchmark(
+        s2 = await self.run_live_scenario_benchmark(
             "S2", injection_fn=lambda: self.injector.inject_subprefix_hijack("192.0.2.0/25", 65004),
             cleanup_fn=self.injector.cleanup_all_attacks, iterations=iterations
         )
         results.append(s2)
 
         # S3: Route Flapping Burst
-        s3 = self.run_live_scenario_benchmark(
+        s3 = await self.run_live_scenario_benchmark(
             "S3", injection_fn=lambda: self.injector.inject_burst_flapping("192.0.2.0/24", cycles=3, interval=0.3),
             cleanup_fn=self.injector.cleanup_all_attacks, iterations=iterations
         )
         results.append(s3)
 
         # S4: YouTube 2008 Hijack Replay
-        s4 = self.run_live_scenario_benchmark(
+        s4 = await self.run_live_scenario_benchmark(
             "S4", injection_fn=lambda: self.injector.inject_historical_replay("youtube_2008_hijack"),
             cleanup_fn=self.injector.cleanup_all_attacks, iterations=iterations
         )
         results.append(s4)
 
         # S5: Google 2017 Route Leak Replay
-        s5 = self.run_live_scenario_benchmark(
+        s5 = await self.run_live_scenario_benchmark(
             "S5", injection_fn=lambda: self.injector.inject_route_leak("192.0.2.0/24", "65002 12389 12389 15169"),
             cleanup_fn=self.injector.cleanup_all_attacks, iterations=iterations
         )
         results.append(s5)
 
         # S6: Cloudflare 2019 Route Leak Replay
-        s6 = self.run_live_scenario_benchmark(
+        s6 = await self.run_live_scenario_benchmark(
             "S6", injection_fn=lambda: self.injector.inject_route_leak("192.0.2.0/24", "65002 701 396531 13335"),
             cleanup_fn=self.injector.cleanup_all_attacks, iterations=iterations
         )
@@ -326,3 +331,8 @@ class ComparativeEvaluator:
 
         logger.info(f"[+] Benchmarks complete. Results saved to {out_json}")
         return results
+
+if __name__ == "__main__":
+    configure_asyncio_policy()
+    evaluator = ComparativeEvaluator()
+    asyncio.run(evaluator.run_all_benchmarks())

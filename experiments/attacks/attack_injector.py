@@ -1,15 +1,16 @@
 """
-Fixed Programmable BGP Attack Injector using real leaked_as_path parameter.
+Programmable BGP Attack Injector (Async-enabled).
 """
 
-import subprocess
 import time
 import os
 import sys
+import asyncio
 from typing import Dict, Any, Optional
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from src.utils.logger import setup_logger
+from src.utils.async_utils import run_subprocess_async
 from experiments.attacks.historical_signatures import HISTORICAL_INCIDENTS
 
 logger = setup_logger("attack_injector")
@@ -19,13 +20,23 @@ class BGPAttackInjector:
         self.rogue = rogue_container
         self.origin = origin_container
 
-    def exec_vtysh(self, container: str, commands: list) -> tuple:
-        full_cmd = ["docker", "exec", "-i", container, "vtysh"]
-        input_str = "\n".join(commands) + "\n"
-        res = subprocess.run(full_cmd, input=input_str, capture_output=True, text=True)
-        return res.returncode, res.stdout, res.stderr
+    async def exec_vtysh(self, container: str, commands: list) -> tuple:
+        input_bytes = ("\n".join(commands) + "\n").encode()
+        try:
+            rc, stdout, stderr = await run_subprocess_async(
+                "docker", "exec", "-i", container, "vtysh",
+                stdin_data=input_bytes,
+                timeout=6.0
+            )
+            return rc, stdout.decode(errors="replace"), stderr.decode(errors="replace")
+        except asyncio.TimeoutError:
+            logger.error(f"[{container}] vtysh command timed out during attack injection")
+            return 1, "", "TimeoutError"
+        except Exception as e:
+            logger.error(f"[{container}] Error executing vtysh: {e}")
+            return 1, "", str(e)
 
-    def inject_direct_hijack(self, prefix: str = "192.0.2.0/24", rogue_origin_as: int = 65004) -> bool:
+    async def inject_direct_hijack(self, prefix: str = "192.0.2.0/24", rogue_origin_as: int = 65004) -> bool:
         """Injects a rogue direct prefix announcement from as65004."""
         logger.info(f"Injecting Direct Prefix Hijack on {self.rogue} for {prefix} (Origin AS: {rogue_origin_as})...")
         cmds = [
@@ -39,10 +50,10 @@ class BGPAttackInjector:
             "exit",
             "clear ip bgp * soft out"
         ]
-        code, out, err = self.exec_vtysh(self.rogue, cmds)
+        code, out, err = await self.exec_vtysh(self.rogue, cmds)
         return code == 0
 
-    def inject_subprefix_hijack(self, subprefix: str = "192.0.2.0/25", rogue_origin_as: int = 65004) -> bool:
+    async def inject_subprefix_hijack(self, subprefix: str = "192.0.2.0/25", rogue_origin_as: int = 65004) -> bool:
         """Injects a more specific sub-prefix announcement."""
         logger.info(f"Injecting Sub-Prefix Hijack on {self.rogue} for {subprefix} (Origin AS: {rogue_origin_as})...")
         cmds = [
@@ -56,10 +67,10 @@ class BGPAttackInjector:
             "exit",
             "clear ip bgp * soft out"
         ]
-        code, out, err = self.exec_vtysh(self.rogue, cmds)
+        code, out, err = await self.exec_vtysh(self.rogue, cmds)
         return code == 0
 
-    def inject_route_leak(self, prefix: str = "192.0.2.0/24", leaked_as_path: str = "65002 65004 65004 65001") -> bool:
+    async def inject_route_leak(self, prefix: str = "192.0.2.0/24", leaked_as_path: str = "65002 65004 65004 65001") -> bool:
         """Injects a multi-hop transit route leak utilizing the actual leaked_as_path argument."""
         logger.info(f"Injecting Route Leak on {self.origin} with path '{leaked_as_path}'...")
         cmds = [
@@ -70,14 +81,14 @@ class BGPAttackInjector:
             "exit",
             "clear ip bgp * soft out"
         ]
-        code, out, err = self.exec_vtysh(self.origin, cmds)
+        code, out, err = await self.exec_vtysh(self.origin, cmds)
         return code == 0
 
-    def inject_burst_flapping(self, prefix: str = "192.0.2.0/24", cycles: int = 4, interval: float = 0.4):
+    async def inject_burst_flapping(self, prefix: str = "192.0.2.0/24", cycles: int = 4, interval: float = 0.4):
         """Simulates rapid advertisement burst flooding."""
         logger.info(f"Injecting Burst Flapping: {cycles} cycles at {interval}s interval...")
         for i in range(1, cycles + 1):
-            self.exec_vtysh(self.origin, [
+            await self.exec_vtysh(self.origin, [
                 "configure terminal",
                 "router bgp 65001",
                 " address-family ipv4 unicast",
@@ -87,8 +98,8 @@ class BGPAttackInjector:
                 "exit",
                 "clear ip bgp * soft out"
             ])
-            time.sleep(interval)
-            self.exec_vtysh(self.origin, [
+            await asyncio.sleep(interval)
+            await self.exec_vtysh(self.origin, [
                 "configure terminal",
                 "router bgp 65001",
                 " address-family ipv4 unicast",
@@ -98,9 +109,9 @@ class BGPAttackInjector:
                 "exit",
                 "clear ip bgp * soft out"
             ])
-            time.sleep(interval)
+            await asyncio.sleep(interval)
 
-    def inject_historical_replay(self, incident_key: str) -> bool:
+    async def inject_historical_replay(self, incident_key: str) -> bool:
         """Replays mapped historical anomaly signature onto the multi-AS testbed."""
         incident = HISTORICAL_INCIDENTS.get(incident_key)
         if not incident:
@@ -121,12 +132,12 @@ class BGPAttackInjector:
             "exit",
             "clear ip bgp * soft out"
         ]
-        code, out, err = self.exec_vtysh(self.rogue, cmds)
+        code, out, err = await self.exec_vtysh(self.rogue, cmds)
         return code == 0
 
-    def cleanup_all_attacks(self):
+    async def cleanup_all_attacks(self):
         """Restores both as65004 and as65001 to clean baseline configurations."""
-        self.exec_vtysh(self.rogue, [
+        await self.exec_vtysh(self.rogue, [
             "configure terminal",
             "router bgp 65004",
             " address-family ipv4 unicast",
@@ -140,7 +151,7 @@ class BGPAttackInjector:
             "exit",
             "clear ip bgp * soft out"
         ])
-        self.exec_vtysh(self.origin, [
+        await self.exec_vtysh(self.origin, [
             "configure terminal",
             "route-map RM_OUT permit 10",
             " no set as-path prepend",
@@ -154,4 +165,4 @@ class BGPAttackInjector:
             "exit",
             "clear ip bgp * soft out"
         ])
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)

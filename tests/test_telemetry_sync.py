@@ -1,5 +1,5 @@
 """
-Race condition verification test for BGP soft reconfiguration.
+Race condition verification test for BGP soft reconfiguration (Async-enabled).
 Tests that updating route maps via vtysh and triggering 'clear ip bgp soft in'
 settles without reading transitional or stale telemetry.
 """
@@ -13,23 +13,24 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from src.policy.policy_engine import BGPPolicyEngine
 from src.telemetry.frr_collector import FRRTelemetryCollector
 
-class TestTelemetrySync(unittest.TestCase):
-    def setUp(self):
+class TestTelemetrySync(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
         self.policy_engine = BGPPolicyEngine(router="as65003", peer_ip="10.0.23.2")
         self.collector = FRRTelemetryCollector(router_container="as65003")
+        await self.collector.storage.initialize()
 
-    def test_post_policy_telemetry_settle(self):
+    async def test_post_policy_telemetry_settle(self):
         # Check if docker router is reachable
         test_policies = {
             "192.0.2.0/24": {"loc_pref": 100, "community": None}
         }
-        success = self.policy_engine.apply_policy(test_policies, settle_delay_sec=0.5)
+        success = await self.policy_engine.apply_policy(test_policies, settle_delay_sec=0.5)
         if not success:
             self.skipTest("Docker testbed router as65003 not online; skipping live integration test.")
         self.assertTrue(success)
 
         # 2. Immediately sample RIB state
-        routes_data = self.collector.collect_route_rib()
+        routes_data = await self.collector.collect_route_rib()
         routes = routes_data.get("routes", [])
         self.assertGreater(len(routes), 0)
         

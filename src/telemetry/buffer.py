@@ -48,6 +48,10 @@ class SlidingWindowBuffer:
             events = [e for e in events if e.get("timestamp", now) >= cutoff]
         return events
 
+    def get_history_for(self, prefix: str, window_seconds: float = None) -> List[Dict[str, Any]]:
+        """Convenience method returning a copy of prefix history."""
+        return self.get_history(prefix, window_seconds=window_seconds)
+
     def count_flaps(self, prefix: str, window_seconds: float = 300.0) -> int:
         """Computes true rolling pairwise path/origin transitions within the window."""
         history = self.get_history(prefix, window_seconds=window_seconds)

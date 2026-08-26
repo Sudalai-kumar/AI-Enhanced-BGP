@@ -1,15 +1,16 @@
 """
 Resilient FRRouting Telemetry Collector with Real RIB Transition Tracking,
 Configured Peer Denominator, and System Metrics Profiling.
+Async-enabled using safe non-blocking subprocess execution.
 """
 
 import json
-import subprocess
 import time
-import os
+import asyncio
 import psutil
 from typing import Dict, Any, List, Optional
 from src.utils.logger import setup_logger
+from src.utils.async_utils import run_subprocess_async
 from src.telemetry.buffer import SlidingWindowBuffer
 from src.telemetry.storage import TelemetryStorage
 
@@ -26,26 +27,29 @@ class FRRTelemetryCollector:
         self.previous_rib: Dict[str, Dict[str, Any]] = {}
         self.total_configured_peers = total_configured_peers
         self.established_peers_count = 0
+        self._last_peer_summary: Dict[str, Any] = {}
 
-    def exec_vtysh_json(self, command: str) -> Optional[Dict[str, Any]]:
-        """Executes vtysh command returning parsed JSON with exponential retry."""
+    async def exec_vtysh_json(self, command: str) -> Optional[Dict[str, Any]]:
+        """Executes vtysh command asynchronously returning parsed JSON with exponential retry."""
         for attempt in range(1, 4):
             try:
-                res = subprocess.run(
-                    ["docker", "exec", self.router_container, "vtysh", "-c", command],
-                    capture_output=True,
-                    text=True,
-                    timeout=4
+                rc, stdout, _ = await run_subprocess_async(
+                    "docker", "exec", self.router_container, "vtysh", "-c", command,
+                    timeout=4.0
                 )
-                if res.returncode == 0 and res.stdout.strip():
-                    return json.loads(res.stdout)
-            except Exception:
-                time.sleep(0.1 * (2 ** attempt))
+                if rc == 0 and stdout.strip():
+                    return json.loads(stdout.decode())
+            except asyncio.TimeoutError:
+                logger.warning(f"[{self.router_container}] vtysh command timed out (attempt {attempt}/3): {command}")
+                await asyncio.sleep(0.1 * (2 ** attempt))
+            except Exception as e:
+                logger.warning(f"[{self.router_container}] vtysh command failed (attempt {attempt}/3): {e}")
+                await asyncio.sleep(0.1 * (2 ** attempt))
         return None
 
-    def collect_bgp_summary(self) -> Dict[str, Any]:
-        """Collects peer state, logs peer records, and updates established peer count."""
-        data = self.exec_vtysh_json("show bgp summary json")
+    async def collect_bgp_summary(self) -> Dict[str, Any]:
+        """Collects peer state, logs peer records, updates established peer count and caches peer summary."""
+        data = await self.exec_vtysh_json("show bgp summary json")
         if not data:
             return {}
 
@@ -69,42 +73,58 @@ class FRRTelemetryCollector:
             })
 
         self.established_peers_count = active_count
+        self._last_peer_summary = ipv4_peers.copy()
+
         if peer_records:
-            self.storage.write_peer_events(peer_records)
+            await self.storage.write_peer_events(peer_records)
 
         return ipv4_peers
 
-    def collect_system_metrics(self) -> Dict[str, Any]:
-        """Collects CPU and Memory utilization for container host and processes."""
-        cpu = psutil.cpu_percent(interval=None)
-        mem = psutil.virtual_memory().used / (1024 * 1024)
-        record = [{
-            "timestamp": time.time(),
-            "container_name": self.router_container,
-            "cpu_percent": cpu,
-            "memory_mb": round(mem, 2)
-        }]
-        self.storage.write_system_metrics(record)
-        return record[0]
+    def check_cached_reachability(self, peer_ip: str) -> bool:
+        """Synchronously checks reachability of peer_ip from cached summary without calling Docker."""
+        if not self._last_peer_summary:
+            return True
+        if peer_ip in self._last_peer_summary:
+            return self._last_peer_summary[peer_ip].get("state", "").lower() == "established"
+        return True
 
-    def verify_nexthop_reachability(self, nexthop_ip: str) -> bool:
+    async def verify_nexthop_reachability(self, nexthop_ip: str) -> bool:
         """Verifies if the specified next-hop IP is reachable and established in FRR."""
-        summary = self.collect_bgp_summary()
+        summary = await self.collect_bgp_summary()
         if nexthop_ip in summary:
             return summary[nexthop_ip].get("state", "").lower() == "established"
         return True
 
-    def collect_route_rib(self) -> Dict[str, Any]:
+    async def collect_system_metrics(self) -> Dict[str, Any]:
+        """Collects CPU and Memory utilization asynchronously."""
+        cpu = await asyncio.to_thread(psutil.cpu_percent, interval=None)
+        mem_used = await asyncio.to_thread(lambda: psutil.virtual_memory().used / (1024 * 1024))
+        record = [{
+            "timestamp": time.time(),
+            "container_name": self.router_container,
+            "cpu_percent": cpu,
+            "memory_mb": round(mem_used, 2)
+        }]
+        await self.storage.write_system_metrics(record)
+        return record[0]
+
+    async def collect_snapshot(self, snapshot_id: int) -> Dict[str, Any]:
         """
-        Collects full BGP RIB, detects actual RIB transitions against previous_rib,
-        and populates sliding-window buffers.
+        Atomically collects full BGP RIB and each prefix's sliding window history.
+        Guarantees that routes and histories belong to the exact same snapshot moment.
         """
-        data = self.exec_vtysh_json("show bgp ipv4 unicast json")
+        data = await self.exec_vtysh_json("show bgp ipv4 unicast json")
+        collected_at = time.monotonic()
         if not data:
-            return {"routes": [], "transitions": []}
+            return {
+                "snapshot_id": snapshot_id,
+                "collected_at": collected_at,
+                "routes_with_history": [],
+                "transitions": []
+            }
 
         routes_dict = data.get("routes", {})
-        parsed_routes = []
+        routes_with_history = []
         current_best_rib: Dict[str, Dict[str, Any]] = {}
         transitions = []
         now = time.time()
@@ -145,9 +165,13 @@ class FRRTelemetryCollector:
                 }
 
                 if route_record["is_best"]:
-                    parsed_routes.append(route_record)
-                    current_best_rib[prefix] = route_record
                     self.buffer.add_event(prefix, route_record)
+                    history = self.buffer.get_history_for(prefix)
+                    routes_with_history.append({
+                        "route": route_record,
+                        "history": history
+                    })
+                    current_best_rib[prefix] = route_record
 
                     # Track RIB state transition against previous snapshot
                     prev = self.previous_rib.get(prefix)
@@ -163,7 +187,20 @@ class FRRTelemetryCollector:
 
         self.previous_rib = current_best_rib
 
-        if parsed_routes:
-            self.storage.write_route_events(parsed_routes)
+        if routes_with_history:
+            await self.storage.write_route_events([item["route"] for item in routes_with_history])
 
-        return {"routes": parsed_routes, "transitions": transitions}
+        return {
+            "snapshot_id": snapshot_id,
+            "collected_at": collected_at,
+            "routes_with_history": routes_with_history,
+            "transitions": transitions
+        }
+
+    async def collect_route_rib(self) -> Dict[str, Any]:
+        """Backward-compatible helper that collects snapshot and returns routes and transitions."""
+        snapshot = await self.collect_snapshot(snapshot_id=0)
+        return {
+            "routes": [item["route"] for item in snapshot["routes_with_history"]],
+            "transitions": snapshot["transitions"]
+        }

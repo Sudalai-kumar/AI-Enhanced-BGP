@@ -13,34 +13,31 @@ An intelligent, autonomous, and standards-compliant BGP control-plane enhancemen
 
 ```
 +---------------------------------------------------------------------------------------------------+
-|                                 SYNCHRONOUS AUTONOMOUS CONTROL PLANE                              |
+|                                 ASYNCHRONOUS AUTONOMOUS CONTROL PLANE                              |
 +---------------------------------------------------------------------------------------------------+
 |                                                                                                   |
 |  [ FRRouting Multi-AS Testbed ] (AS 65001 -> AS 65002 Transit -> AS 65003 Monitor <- AS 65004)   |
 |                 │                                                                                 |
 |                 ▼                                                                                 |
-|  [ Telemetry Ingestion ] (vtysh collector + sliding-window buffer + SQLite/JSONL)                |
-|                 │                                                                                 |
+|  [ Telemetry Coroutine ] (vtysh collector + atomic snapshot + buffer + storage)                  |
+|                 │ (async queue)                                                                   |
 |                 ▼                                                                                 |
-|  [ 10-Feature Behavioral Extractor ] (Gao-Rexford valley-free heuristic + AS-Path Levenshtein)   |
-|                 │                                                                                 |
+|  [ 10-Feature Behavioral Extractor + Calibrated ML Model & Trust Engine Coroutine ]               |
+|                 │ (async queue with snapshot IDs & staleness rejection)                           |
 |                 ▼                                                                                 |
-|  [ Calibrated ML Model & Multi-Factor Behavioral Trust Engine ] (CalibratedClassifierCV)         |
-|                 │                                                                                 |
-|                 ▼                                                                                 |
-|  [ Shadow Validator & Anti-Thrashing Guard ] (4s Staging Queue + Hysteresis Band Δ=0.05)          |
-|                 │                                                                                 |
-|                 ▼                                                                                 |
-|  [ Policy Engine, Deep RIB Verification & SQLite State Store ]                                    |
+|  [ Dedicated Policy Actor ] (Shadow Validator & Anti-Thrashing Guard + Atomic Apply)              |
 |     ├── Normal (Trust ≥ 0.85)     ──► LocalPref 100                                              |
 |     ├── Suspicious (0.55 - 0.80)  ──► LocalPref 80 (Soft Deprioritization)                       |
 |     ├── Route Leak (0.25 - 0.55)  ──► LocalPref 50 (Hard Deprioritization)                       |
 |     └── Prefix Hijack (< 0.25)    ──► LocalPref 0 + BGP Community 'no-export' (Dual Quarantine)  |
 |                                                                                                   |
+|  [ Heartbeat Coroutine ] ──► Non-blocking peer reachability using cached summary                  |
+|  [ Metrics Coroutine ]   ──► Independent CPU/RAM utilization telemetry                            |
+|                                                                                                   |
 +---------------------------------------------------------------------------------------------------+
 ```
 
-> **Architecture Note**: The control plane operates as a **synchronous polling autonomous controller** (not an asynchronous event-driven framework). Each polling iteration sequentially ingests telemetry from FRR, extracts features, performs calibrated inference, evaluates multi-factor trust, and atomically enforces verified route-map and RIB updates. This design ensures deterministic state transitions and full reproducibility in research testbeds.
+> **Architecture Note**: The control plane operates as an **asynchronous event-driven pipeline** orchestrated via Python `asyncio`. Five concurrent cooperative coroutines handle telemetry ingestion, feature extraction & ML inference, snapshot-batched atomic policy enforcement, cached peer heartbeat, and system metrics. Inter-task queues with snapshot generation IDs prevent race conditions and stale decisions while maintaining atomic all-or-nothing policy application.
 
 ---
 
@@ -126,7 +123,7 @@ python scripts/verify_convergence.py
 ### 1. Run the Autonomous BGP Controller
 Launch the closed-loop autonomous daemon on monitor node `as65003`:
 ```bash
-python scripts/run_autonomous_controller.py --router as65003
+python scripts/run_autonomous_controller.py --router as65003 --interval 1.0 --heartbeat 10.0 --metrics-interval 5.0
 ```
 
 ### 2. Retrain ML Models (Cross-Seed Holdout & Overlapping Distributions)

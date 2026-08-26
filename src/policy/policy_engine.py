@@ -1,18 +1,18 @@
-﻿"""
+"""
 Robust BGP Policy Engine with Route-Map Flush, Object Pruning,
 Deep FRR Configuration Verification, and RIB Best-Path Behavioral Verification.
+Async-enabled using safe non-blocking subprocess execution.
 """
 
-import subprocess
-import time
+import asyncio
 import os
 import sys
 import json
-import re
 from typing import Dict, Any, Optional, Tuple
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from src.utils.logger import setup_logger
+from src.utils.async_utils import run_subprocess_async
 
 logger = setup_logger("policy_engine")
 
@@ -81,9 +81,9 @@ class BGPPolicyEngine:
 
         return "\n".join(lines)
 
-    def apply_policy(self, prefix_policies: Dict[str, Dict[str, Any]], settle_delay_sec: float = 0.4) -> bool:
+    async def apply_policy(self, prefix_policies: Dict[str, Dict[str, Any]], settle_delay_sec: float = 0.4) -> bool:
         """
-        Applies clean route-map updates to the live FRRouting container via vtysh,
+        Applies clean route-map updates to the live FRRouting container via vtysh asynchronously,
         cleans stale prefix-lists, triggers soft BGP inbound re-evaluation,
         and performs deep verification against FRR configuration state AND RIB best-path state.
         Both layers must pass for apply_policy to return True.
@@ -105,17 +105,15 @@ class BGPPolicyEngine:
         vtysh_script = "\n".join(cmd_lines)
 
         try:
-            res = subprocess.run(
-                ["docker", "exec", "-i", self.router, "vtysh"],
-                input=vtysh_script,
-                capture_output=True,
-                text=True,
-                timeout=6
+            rc, stdout, stderr = await run_subprocess_async(
+                "docker", "exec", "-i", self.router, "vtysh",
+                stdin_data=vtysh_script.encode(),
+                timeout=6.0
             )
-            if res.returncode == 0:
-                time.sleep(settle_delay_sec)
+            if rc == 0:
+                await asyncio.sleep(settle_delay_sec)
                 # Layer 1: Verify route-map configuration exists in FRR
-                config_verified = self.verify_frr_state(prefix_policies)
+                config_verified = await self.verify_frr_state(prefix_policies)
                 if not config_verified:
                     logger.error(f"[{self.router}] FRR route-map configuration verification failed.")
                     return False
@@ -125,7 +123,7 @@ class BGPPolicyEngine:
                 for pfx, policy in prefix_policies.items():
                     expected_lp = policy.get("loc_pref", 100)
                     expected_comm = policy.get("community")
-                    ok, details = self.verify_rib_best_path(pfx, expected_lp, expected_comm)
+                    ok, details = await self.verify_rib_best_path(pfx, expected_lp, expected_comm)
                     if not ok:
                         logger.error(
                             f"[{self.router}] RIB best-path verification failed for {pfx}: {details}"
@@ -143,28 +141,29 @@ class BGPPolicyEngine:
                     logger.error(f"[{self.router}] RIB best-path verification failed — policy not committed.")
                     return False
             else:
-                logger.error(f"[{self.router}] Failed to apply policy via vtysh: {res.stderr}")
+                logger.error(f"[{self.router}] Failed to apply policy via vtysh: {stderr.decode(errors='replace')}")
                 return False
+        except asyncio.TimeoutError:
+            logger.error(f"[{self.router}] vtysh command timed out during apply_policy")
+            return False
         except Exception as e:
             logger.error(f"[{self.router}] Error applying policy: {e}")
             return False
 
-    def verify_frr_state(self, expected_policies: Dict[str, Dict[str, Any]]) -> bool:
+    async def verify_frr_state(self, expected_policies: Dict[str, Dict[str, Any]]) -> bool:
         """
         Layer 1: Queries FRR to verify that each expected prefix-list and route-map sequence
         is installed with the exact expected LocalPref and community in the route-map config.
         """
         try:
-            res = subprocess.run(
-                ["docker", "exec", self.router, "vtysh", "-c", f"show route-map {self.route_map_name}"],
-                capture_output=True,
-                text=True,
-                timeout=4
+            rc, stdout, _ = await run_subprocess_async(
+                "docker", "exec", self.router, "vtysh", "-c", f"show route-map {self.route_map_name}",
+                timeout=4.0
             )
-            if res.returncode != 0:
+            if rc != 0:
                 return False
 
-            output = res.stdout
+            output = stdout.decode(errors="replace")
             for pfx, policy in expected_policies.items():
                 expected_lp = policy.get("loc_pref", 100)
                 expected_comm = policy.get("community")
@@ -181,7 +180,7 @@ class BGPPolicyEngine:
         except Exception:
             return False
 
-    def verify_rib_best_path(
+    async def verify_rib_best_path(
         self,
         prefix: str,
         expected_lp: int,
@@ -205,22 +204,18 @@ class BGPPolicyEngine:
             "reason": None,
         }
         try:
-            res = subprocess.run(
-                ["docker", "exec", self.router, "vtysh", "-c",
-                 f"show bgp ipv4 unicast {prefix} json"],
-                capture_output=True,
-                text=True,
-                timeout=4
+            rc, stdout, _ = await run_subprocess_async(
+                "docker", "exec", self.router, "vtysh", "-c",
+                f"show bgp ipv4 unicast {prefix} json",
+                timeout=4.0
             )
-            if res.returncode != 0:
-                details["reason"] = f"vtysh returned non-zero exit code: {res.returncode}"
+            if rc != 0:
+                details["reason"] = f"vtysh returned non-zero exit code: {rc}"
                 return False, details
 
-            data = json.loads(res.stdout)
+            data = json.loads(stdout.decode())
             paths = data.get("paths", [])
             if not paths:
-                # FRR sometimes returns {"prefix": ..., "paths": [...]}
-                # Try alternate top-level key
                 for key, val in data.items():
                     if isinstance(val, list) and len(val) > 0:
                         paths = val
@@ -238,7 +233,6 @@ class BGPPolicyEngine:
                     break
 
             if best_path is None:
-                # If no path is explicitly marked best, take the first
                 best_path = paths[0]
 
             actual_lp = best_path.get("locPrf", best_path.get("localPref", None))
@@ -272,7 +266,7 @@ class BGPPolicyEngine:
             details["reason"] = "OK"
             return True, details
 
-        except subprocess.TimeoutExpired:
+        except asyncio.TimeoutError:
             details["reason"] = "vtysh command timed out during RIB query"
             return False, details
         except json.JSONDecodeError as e:

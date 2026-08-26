@@ -1,6 +1,6 @@
 """
 Unit Test Suite for Controller State Store, Deep FRR Policy Verification,
-Atomic Persistence, and Benchmark Metric Censoring.
+Atomic Persistence, and Benchmark Metric Censoring (Async-enabled).
 """
 
 import unittest
@@ -14,15 +14,16 @@ from src.policy.state_store import ControllerStateStore
 from src.policy.policy_engine import BGPPolicyEngine
 from src.experiments.metrics import BenchmarkMetricsCalculator
 
-class TestStateStoreAndVerification(unittest.TestCase):
-    def setUp(self):
+class TestStateStoreAndVerification(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
         self.temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
         self.temp_path = self.temp_file.name
         self.temp_file.close()
         self.store = ControllerStateStore(db_path=self.temp_path)
+        await self.store.initialize()
         self.engine = BGPPolicyEngine(router="test_router")
 
-    def tearDown(self):
+    async def asyncTearDown(self):
         del self.store
         gc.collect()
         if os.path.exists(self.temp_path):
@@ -31,13 +32,13 @@ class TestStateStoreAndVerification(unittest.TestCase):
             except PermissionError:
                 pass
 
-    def test_state_store_save_and_retrieve(self):
-        self.store.save_policy("192.0.2.0/24", loc_pref=0, community="no-export",
-                              classification_id=3, trust_score=0.12, verified=True)
-        self.store.save_policy("198.51.100.0/24", loc_pref=80, community=None,
-                              classification_id=1, trust_score=0.68, verified=True)
+    async def test_state_store_save_and_retrieve(self):
+        await self.store.save_policy("192.0.2.0/24", loc_pref=0, community="no-export",
+                                     classification_id=3, trust_score=0.12, verified=True)
+        await self.store.save_policy("198.51.100.0/24", loc_pref=80, community=None,
+                                     classification_id=1, trust_score=0.68, verified=True)
 
-        policies = self.store.get_all_active_policies()
+        policies = await self.store.get_all_active_policies()
         self.assertEqual(len(policies), 2)
         self.assertEqual(policies["192.0.2.0/24"]["loc_pref"], 0)
         self.assertEqual(policies["192.0.2.0/24"]["community"], "no-export")
@@ -45,10 +46,10 @@ class TestStateStoreAndVerification(unittest.TestCase):
         self.assertEqual(policies["198.51.100.0/24"]["loc_pref"], 80)
         self.assertEqual(policies["198.51.100.0/24"]["community"], None)
 
-    def test_state_store_deletion(self):
-        self.store.save_policy("192.0.2.0/24", 50, None, 2, 0.45, True)
-        self.store.remove_policy("192.0.2.0/24")
-        policies = self.store.get_all_active_policies()
+    async def test_state_store_deletion(self):
+        await self.store.save_policy("192.0.2.0/24", 50, None, 2, 0.45, True)
+        await self.store.remove_policy("192.0.2.0/24")
+        policies = await self.store.get_all_active_policies()
         self.assertNotIn("192.0.2.0/24", policies)
 
     def test_route_map_syntax_generation(self):

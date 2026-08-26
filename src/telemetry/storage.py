@@ -1,11 +1,13 @@
 """
 Full-Featured Telemetry Storage Engine with SQLite & JSONL support for Routes, Peers, System Metrics, and Convergence Events.
+Async-compatible with asyncio.to_thread and write serialization lock.
 """
 
 import sqlite3
 import json
 import os
 import time
+import asyncio
 from typing import Dict, Any, List, Optional
 from src.utils.logger import setup_logger
 
@@ -22,9 +24,9 @@ class TelemetryStorage:
         self.jsonl_path = jsonl_path
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         os.makedirs(os.path.dirname(self.jsonl_path), exist_ok=True)
-        self._init_sqlite()
+        self._db_lock = asyncio.Lock()
 
-    def _init_sqlite(self):
+    def _init_sqlite_sync(self):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -83,11 +85,11 @@ class TelemetryStorage:
         except Exception as e:
             logger.error(f"Failed to initialize SQLite schema: {e}", exc_info=True)
 
-    def write_route_events(self, events: List[Dict[str, Any]]):
-        """Dual writes route telemetry to SQLite and JSONL."""
-        if not events:
-            return
+    async def initialize(self) -> None:
+        """Explicit awaitable initializer."""
+        await asyncio.to_thread(self._init_sqlite_sync)
 
+    def _write_jsonl_sync(self, events: List[Dict[str, Any]]):
         try:
             with open(self.jsonl_path, "a", encoding="utf-8") as f:
                 for ev in events:
@@ -95,6 +97,8 @@ class TelemetryStorage:
         except Exception as e:
             logger.error(f"Failed writing to JSONL: {e}", exc_info=True)
 
+    def _write_route_events_sync(self, events: List[Dict[str, Any]]):
+        self._write_jsonl_sync(events)
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -123,10 +127,7 @@ class TelemetryStorage:
         except Exception as e:
             logger.error(f"Failed writing route events to SQLite: {e}", exc_info=True)
 
-    def write_peer_events(self, peer_events: List[Dict[str, Any]]):
-        """Writes BGP peer telemetry records to SQLite."""
-        if not peer_events:
-            return
+    def _write_peer_events_sync(self, peer_events: List[Dict[str, Any]]):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -151,10 +152,7 @@ class TelemetryStorage:
         except Exception as e:
             logger.error(f"Failed writing peer events to SQLite: {e}", exc_info=True)
 
-    def write_system_metrics(self, metrics: List[Dict[str, Any]]):
-        """Writes CPU/RAM container metrics to SQLite."""
-        if not metrics:
-            return
+    def _write_system_metrics_sync(self, metrics: List[Dict[str, Any]]):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -176,8 +174,7 @@ class TelemetryStorage:
         except Exception as e:
             logger.error(f"Failed writing system metrics to SQLite: {e}", exc_info=True)
 
-    def write_convergence_event(self, router: str, event_type: str, convergence_sec: float, target_prefix: str = ""):
-        """Records a BGP convergence timing event."""
+    def _write_convergence_event_sync(self, router: str, event_type: str, convergence_sec: float, target_prefix: str = ""):
         try:
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute("""
@@ -188,3 +185,25 @@ class TelemetryStorage:
                 conn.commit()
         except Exception as e:
             logger.error(f"Failed writing convergence event to SQLite: {e}", exc_info=True)
+
+    async def write_route_events(self, events: List[Dict[str, Any]]):
+        if not events:
+            return
+        async with self._db_lock:
+            await asyncio.to_thread(self._write_route_events_sync, events)
+
+    async def write_peer_events(self, peer_events: List[Dict[str, Any]]):
+        if not peer_events:
+            return
+        async with self._db_lock:
+            await asyncio.to_thread(self._write_peer_events_sync, peer_events)
+
+    async def write_system_metrics(self, metrics: List[Dict[str, Any]]):
+        if not metrics:
+            return
+        async with self._db_lock:
+            await asyncio.to_thread(self._write_system_metrics_sync, metrics)
+
+    async def write_convergence_event(self, router: str, event_type: str, convergence_sec: float, target_prefix: str = ""):
+        async with self._db_lock:
+            await asyncio.to_thread(self._write_convergence_event_sync, router, event_type, convergence_sec, target_prefix)
