@@ -1,8 +1,8 @@
 {
   "evaluation_method": "cross_seed_holdout",
   "evaluation_method_note": "Training and test sets are generated independently using different random seeds (train_seed=42, test_seed=99). This prevents within-generator correlation. This is NOT a temporal holdout and does not claim temporal ordering.",
-  "training_timestamp": "2026-08-20T15:35:19.068090Z",
-  "git_commit": "3a56f95998d49ad62ad0642cc80f19531bee81d8",
+  "training_timestamp": "2026-09-05T13:37:12.766589Z",
+  "git_commit": "53fb4836f0c53e570510c7a960c7e056ba87a740",
   "dataset_summary": {
     "train_samples": 15000,
     "test_samples": 15000,

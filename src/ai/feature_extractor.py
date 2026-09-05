@@ -25,13 +25,39 @@ from typing import List, Dict, Any, Optional
 # Rule: Once a Downward (Provider->Customer) step occurs, the path cannot transition back to Provider or Peer.
 
 AS_RELATIONSHIPS: Dict[tuple, str] = {
-    # Internal Testbed Topology: AS65001 (Customer) -> AS65002 (Transit) -> AS65003 (Peer) <-> AS65004 (Peer)
-    (65001, 65002): 'customer-to-provider',
-    (65002, 65001): 'provider-to-customer',
-    (65002, 65003): 'peer-to-peer',
-    (65003, 65002): 'peer-to-peer',
-    (65003, 65004): 'peer-to-peer',
+    # Tier-1 Transit Core Peering: AS65001 <-> AS65002 (Peer-to-Peer)
+    (65001, 65002): 'peer-to-peer',
+    (65002, 65001): 'peer-to-peer',
+
+    # AS65001 Regional Customers (West & East)
+    (65003, 65001): 'customer-to-provider',
+    (65001, 65003): 'provider-to-customer',
+    (65004, 65001): 'customer-to-provider',
+    (65001, 65004): 'provider-to-customer',
+
+    # AS65002 Regional Customers (North & South)
+    (65005, 65002): 'customer-to-provider',
+    (65002, 65005): 'provider-to-customer',
+    (65006, 65002): 'customer-to-provider',
+    (65002, 65006): 'provider-to-customer',
+
+    # Stub & Enterprise Customers
+    (65007, 65003): 'customer-to-provider',
+    (65003, 65007): 'provider-to-customer',
+    (65008, 65003): 'customer-to-provider',
+    (65003, 65008): 'provider-to-customer',
+    (65009, 65004): 'customer-to-provider',
+    (65004, 65009): 'provider-to-customer',
+
+    # Rogue Node AS65010 (Customer of AS65006)
+    (65010, 65006): 'customer-to-provider',
+    (65006, 65010): 'provider-to-customer',
+
+    # Cross-regional/legacy transit mappings
+    (65003, 65002): 'customer-to-provider',
+    (65002, 65003): 'provider-to-customer',
     (65004, 65003): 'peer-to-peer',
+    (65003, 65004): 'peer-to-peer',
     
     # Historical Incident Relationships
     # Google (AS15169) - Customer of Rostelecom (AS12389)
@@ -68,8 +94,16 @@ FEATURE_NAMES = [
     "neighbor_diversity"
 ]
 
+PREFIX_BASELINES: Dict[str, Dict[str, Any]] = {
+    "192.0.2.0/24": {"origin_as": 65007, "as_path": "65003 65007"},
+    "192.0.2.0/25": {"origin_as": 65007, "as_path": "65003 65007"},
+    "198.51.100.0/24": {"origin_as": 65008, "as_path": "65003 65008"},
+    "203.0.113.0/24": {"origin_as": 65009, "as_path": "65004 65009"},
+    "208.65.153.0/24": {"origin_as": 36561, "as_path": "65001 36561"},
+}
+
 class BGPFeatureExtractor:
-    def __init__(self, baseline_origin_as: int = 65001, baseline_as_path: str = "65002 65001"):
+    def __init__(self, baseline_origin_as: int = 65007, baseline_as_path: str = "65003 65007"):
         self.baseline_origin_as = baseline_origin_as
         self.baseline_as_path = baseline_as_path
 
@@ -144,13 +178,18 @@ class BGPFeatureExtractor:
         """
         now = time.time()
         
+        # Per-prefix baseline resolution
+        pfx_meta = PREFIX_BASELINES.get(prefix, {})
+        base_origin = pfx_meta.get("origin_as", self.baseline_origin_as)
+        base_path = pfx_meta.get("as_path", self.baseline_as_path)
+
         # 1. AS Path length
         as_path = str(current_route.get("as_path", "")).strip()
         as_path_tokens = as_path.split()
         as_path_len = float(len(as_path_tokens))
 
         # 2. AS Path edit distance
-        baseline_tokens = self.baseline_as_path.split()
+        baseline_tokens = base_path.split()
         as_path_edit_distance = float(self.levenshtein_distance(as_path_tokens, baseline_tokens))
 
         # 3. Origin AS change
@@ -159,8 +198,8 @@ class BGPFeatureExtractor:
             try:
                 origin_as = int(as_path_tokens[-1])
             except ValueError:
-                origin_as = self.baseline_origin_as
-        origin_as_change = 1.0 if (origin_as is not None and int(origin_as) != self.baseline_origin_as) else 0.0
+                origin_as = base_origin
+        origin_as_change = 1.0 if (origin_as is not None and int(origin_as) != base_origin) else 0.0
 
         # 4. Prefix mask length
         try:

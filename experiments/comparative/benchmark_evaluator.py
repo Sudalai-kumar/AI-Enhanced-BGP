@@ -270,14 +270,14 @@ class ComparativeEvaluator:
 
         # S1: Direct Prefix Hijack
         s1 = await self.run_live_scenario_benchmark(
-            "S1", injection_fn=lambda: self.injector.inject_direct_hijack("192.0.2.0/24", 65004),
+            "S1", injection_fn=lambda: self.injector.inject_direct_hijack("192.0.2.0/24", 65010),
             cleanup_fn=self.injector.cleanup_all_attacks, iterations=iterations
         )
         results.append(s1)
 
         # S2: Sub-prefix Hijack (/25)
         s2 = await self.run_live_scenario_benchmark(
-            "S2", injection_fn=lambda: self.injector.inject_subprefix_hijack("192.0.2.0/25", 65004),
+            "S2", injection_fn=lambda: self.injector.inject_subprefix_hijack("192.0.2.0/25", 65010),
             cleanup_fn=self.injector.cleanup_all_attacks, iterations=iterations
         )
         results.append(s2)

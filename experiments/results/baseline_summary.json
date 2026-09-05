@@ -1,62 +1,97 @@
 {
-  "benchmark_type": "baseline_unmodified_bgp",
   "iterations": 3,
   "cold_start_convergence": {
-    "mean": 5.4659,
-    "std": 0.0408,
-    "median": 5.45,
-    "min": 5.4258,
-    "max": 5.5218,
-    "cv_percent": 0.75
+    "mean": 30.0,
+    "std": 0.0,
+    "median": 30.0,
+    "min": 30.0,
+    "max": 30.0,
+    "cv_percent": 0.0
   },
   "route_withdrawal_latency": {
-    "mean": 9.0427,
-    "std": 0.115,
-    "median": 9.055,
-    "min": 8.896,
-    "max": 9.177,
-    "cv_percent": 1.27
+    "mean": 30.0,
+    "std": 0.0,
+    "median": 30.0,
+    "min": 30.0,
+    "max": 30.0,
+    "cv_percent": 0.0
   },
   "route_recovery_latency": {
-    "mean": 1.3943,
-    "std": 0.0403,
-    "median": 1.384,
-    "min": 1.351,
-    "max": 1.448,
-    "cv_percent": 2.89
+    "mean": 0.5297,
+    "std": 0.0627,
+    "median": 0.492,
+    "min": 0.479,
+    "max": 0.618,
+    "cv_percent": 11.84
   },
   "route_flapping_updates": {
-    "mean": 7.0,
-    "std": 0.8165,
-    "median": 7.0,
-    "min": 6.0,
-    "max": 8.0,
-    "cv_percent": 11.66
+    "mean": 0.0,
+    "std": 0.0,
+    "median": 0.0,
+    "min": 0.0,
+    "max": 0.0,
+    "cv_percent": 0.0
   },
   "resource_profiling": {
     "as65001": {
-      "avg_cpu_percent": 0.06,
-      "max_cpu_percent": 0.06,
-      "avg_mem_mib": 21.71,
-      "max_mem_mib": 21.71
+      "avg_cpu_percent": 0.03,
+      "max_cpu_percent": 0.03,
+      "avg_mem_mib": 23.79,
+      "max_mem_mib": 23.79
     },
     "as65002": {
-      "avg_cpu_percent": 0.19,
-      "max_cpu_percent": 0.19,
-      "avg_mem_mib": 22.15,
-      "max_mem_mib": 22.15
+      "avg_cpu_percent": 0.17,
+      "max_cpu_percent": 0.17,
+      "avg_mem_mib": 23.54,
+      "max_mem_mib": 23.54
     },
     "as65003": {
-      "avg_cpu_percent": 0.0,
-      "max_cpu_percent": 0.0,
-      "avg_mem_mib": 23.07,
-      "max_mem_mib": 23.07
+      "avg_cpu_percent": 0.07,
+      "max_cpu_percent": 0.07,
+      "avg_mem_mib": 22.84,
+      "max_mem_mib": 22.84
     },
     "as65004": {
+      "avg_cpu_percent": 0.19,
+      "max_cpu_percent": 0.19,
+      "avg_mem_mib": 22.0,
+      "max_mem_mib": 22.0
+    },
+    "as65005": {
+      "avg_cpu_percent": 0.01,
+      "max_cpu_percent": 0.01,
+      "avg_mem_mib": 21.36,
+      "max_mem_mib": 21.36
+    },
+    "as65006": {
+      "avg_cpu_percent": 0.12,
+      "max_cpu_percent": 0.12,
+      "avg_mem_mib": 22.01,
+      "max_mem_mib": 22.01
+    },
+    "as65007": {
+      "avg_cpu_percent": 0.01,
+      "max_cpu_percent": 0.01,
+      "avg_mem_mib": 21.37,
+      "max_mem_mib": 21.37
+    },
+    "as65008": {
+      "avg_cpu_percent": 0.01,
+      "max_cpu_percent": 0.01,
+      "avg_mem_mib": 21.38,
+      "max_mem_mib": 21.38
+    },
+    "as65009": {
       "avg_cpu_percent": 0.13,
       "max_cpu_percent": 0.13,
-      "avg_mem_mib": 21.48,
-      "max_mem_mib": 21.48
+      "avg_mem_mib": 21.36,
+      "max_mem_mib": 21.36
+    },
+    "as65010": {
+      "avg_cpu_percent": 0.01,
+      "max_cpu_percent": 0.01,
+      "avg_mem_mib": 21.36,
+      "max_mem_mib": 21.36
     }
   },
   "data_plane": {

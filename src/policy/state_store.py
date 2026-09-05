@@ -15,8 +15,14 @@ DB_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "da
 DB_PATH = os.path.join(DB_DIR, "controller_state.db")
 
 class ControllerStateStore:
-    def __init__(self, db_path: str = DB_PATH):
-        self.db_path = db_path
+    def __init__(self, db_path: Optional[str] = None, router_name: str = "default"):
+        if db_path is None:
+            if router_name == "default":
+                self.db_path = DB_PATH
+            else:
+                self.db_path = os.path.join(DB_DIR, f"controller_state_{router_name}.db")
+        else:
+            self.db_path = db_path
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._db_lock = asyncio.Lock()
 

@@ -32,34 +32,41 @@ def exec_vtysh_json(container: str, cmd: str):
     return None
 
 def verify_all(timeout: int = 30):
-    print("=" * 65)
-    print(" BGP Multi-AS Convergence & Routing Parity Verification")
-    print("=" * 65)
+    print("=" * 70)
+    print(" 10-AS BGP Convergence & Routing Parity Verification")
+    print("=" * 70)
     
     start_time = time.time()
     converged = False
     
     while time.time() - start_time < timeout:
-        # Check AS65003 BGP Summary
-        summary = exec_vtysh_json("as65003", "show bgp summary")
-        # Check AS65003 IPv4 RIB
-        rib = exec_vtysh_json("as65003", "show bgp ipv4 unicast")
+        # Check AS65001 (Core Defender) and AS65003 (Edge Defender)
+        s1 = exec_vtysh_json("as65001", "show bgp summary")
+        s3 = exec_vtysh_json("as65003", "show bgp summary")
+        rib3 = exec_vtysh_json("as65003", "show bgp ipv4 unicast")
         
-        peer_ok = False
+        peers_1_ok = False
+        peers_3_ok = False
         route_ok = False
         
-        if summary and "ipv4Unicast" in summary:
-            peers = summary["ipv4Unicast"].get("peers", {})
-            peer_transit = peers.get("10.0.23.2", {})
-            if peer_transit.get("state") == "Established":
-                peer_ok = True
+        if s1 and "ipv4Unicast" in s1:
+            peers1 = s1["ipv4Unicast"].get("peers", {})
+            established = sum(1 for p in peers1.values() if p.get("state") == "Established")
+            if established >= 2:
+                peers_1_ok = True
                 
-        if rib and "routes" in rib:
-            routes = rib["routes"]
-            if "192.0.2.0/24" in routes and "198.51.100.0/24" in routes:
+        if s3 and "ipv4Unicast" in s3:
+            peers3 = s3["ipv4Unicast"].get("peers", {})
+            established = sum(1 for p in peers3.values() if p.get("state") == "Established")
+            if established >= 2:
+                peers_3_ok = True
+
+        if rib3 and "routes" in rib3:
+            routes = rib3["routes"]
+            if "192.0.2.0/24" in routes:
                 route_ok = True
                 
-        if peer_ok and route_ok:
+        if (peers_1_ok or peers_3_ok) and route_ok:
             converged = True
             break
             
@@ -67,48 +74,37 @@ def verify_all(timeout: int = 30):
 
     elapsed = round(time.time() - start_time, 2)
     
-    # Detailed Table Output
+    # Detailed Table Output for all running AS nodes
     table_data = []
-    
-    # Node AS65001
-    s1 = exec_vtysh_json("as65001", "show bgp summary")
-    p1 = s1.get("ipv4Unicast", {}).get("peers", {}).get("10.0.12.3", {}).get("state", "Down") if s1 else "Error"
-    table_data.append(["AS65001 (Origin)", "10.0.12.3 (AS65002)", p1, "Originating 192.0.2.0/24, 198.51.100.0/24"])
+    for as_num in range(65001, 65011):
+        cname = f"as{as_num}"
+        s = exec_vtysh_json(cname, "show bgp summary")
+        if not s or "ipv4Unicast" not in s:
+            continue
+        peers = s["ipv4Unicast"].get("peers", {})
+        for peer_ip, pinfo in peers.items():
+            state = pinfo.get("state", "Down")
+            pfx_rcvd = pinfo.get("pfxRcd", 0)
+            remote_as = pinfo.get("remoteAs", 0)
+            desc = pinfo.get("desc", f"AS{remote_as}")
+            table_data.append([cname.upper(), f"{peer_ip} (AS{remote_as})", state, f"Pfx: {pfx_rcvd} ({desc})"])
 
-    # Node AS65002
-    s2 = exec_vtysh_json("as65002", "show bgp summary")
-    p2_1 = s2.get("ipv4Unicast", {}).get("peers", {}).get("10.0.12.2", {}).get("state", "Down") if s2 else "Error"
-    p2_3 = s2.get("ipv4Unicast", {}).get("peers", {}).get("10.0.23.3", {}).get("state", "Down") if s2 else "Error"
-    table_data.append(["AS65002 (Transit)", "10.0.12.2 (AS65001)", p2_1, "Transit forwarding"])
-    table_data.append(["AS65002 (Transit)", "10.0.23.3 (AS65003)", p2_3, "Transit forwarding"])
-
-    # Node AS65003
-    s3 = exec_vtysh_json("as65003", "show bgp summary")
-    p3 = s3.get("ipv4Unicast", {}).get("peers", {}).get("10.0.23.2", {}).get("state", "Down") if s3 else "Error"
-    rib3 = exec_vtysh_json("as65003", "show bgp ipv4 unicast")
-    
-    r_info = "No routes"
-    if rib3 and "routes" in rib3:
-        pfx_info = []
-        for pfx, paths in rib3["routes"].items():
-            for path in paths:
-                pfx_info.append(f"{pfx} via {path.get('path', 'N/A')}")
-        r_info = ", ".join(pfx_info)
-
-    table_data.append(["AS65003 (Monitor)", "10.0.23.1 (AS65002)", p3, r_info])
-
-    print("\n" + tabulate(table_data, headers=["Node", "Neighbor", "BGP State", "Learned Prefixes & AS Path"], tablefmt="grid"))
+    if table_data:
+        print("\n" + tabulate(table_data, headers=["Node", "Neighbor", "BGP State", "Details"], tablefmt="grid"))
+    else:
+        print("\n[!] No active BGP sessions detected in running containers.")
     
     if converged:
         print(f"\n[+] CONVERGENCE SUCCESSFUL in {elapsed}s!")
-        storage.log_event({
-            "record_type": "convergence_metric",
-            "timestamp": time.time(),
-            "event_type": "initial_convergence",
-            "prefix": "192.0.2.0/24",
-            "duration": elapsed,
-            "details": {"status": "SUCCESS", "elapsed": elapsed}
-        })
+        try:
+            storage._write_convergence_event_sync(
+                router="as65003",
+                event_type="initial_convergence",
+                convergence_sec=elapsed,
+                target_prefix="192.0.2.0/24"
+            )
+        except Exception:
+            pass
         return True
     else:
         print(f"\n[!] CONVERGENCE FAILED or TIMED OUT after {timeout}s.")

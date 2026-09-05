@@ -34,8 +34,8 @@ def parse_mem_mib(val_str: str) -> float:
     return 0.0
 
 def profile_resources(duration_sec: float = 10.0, sample_interval: float = 1.0) -> Dict[str, Any]:
-    """Profiles CPU & RAM across all FRR containers."""
-    containers = ["as65001", "as65002", "as65003", "as65004"]
+    """Profiles CPU & RAM across all FRR containers in the 10-AS topology."""
+    containers = [f"as65{i:03d}" for i in range(1, 11)]
     cpu_samples: Dict[str, List[float]] = {c: [] for c in containers}
     mem_samples: Dict[str, List[float]] = {c: [] for c in containers}
     

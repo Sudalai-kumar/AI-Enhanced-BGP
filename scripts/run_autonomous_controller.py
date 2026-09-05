@@ -40,10 +40,12 @@ from src.policy.state_store import ControllerStateStore
 logger = setup_logger("autonomous_controller")
 
 class AutonomousBGPController:
-    def __init__(self, router: str = "as65003", peer_ip: str = "10.0.23.2",
+    def __init__(self, router: str = "as65003", peer_ip: str = "10.0.13.2",
                  poll_interval: float = 1.0, shadow_sec: float = 4.0, model_type: str = "random_forest",
-                 total_configured_peers: int = 2, heartbeat_interval: float = 10.0,
-                 metrics_interval: float = 5.0):
+                 total_configured_peers: int = 3, heartbeat_interval: float = 10.0,
+                 metrics_interval: float = 5.0,
+                 baseline_origin_as: int = 65007,
+                 baseline_as_path: str = "65003 65001"):
         self.router = router
         self.peer_ip = peer_ip
         self.interval = poll_interval
@@ -52,7 +54,7 @@ class AutonomousBGPController:
 
         # Telemetry & AI Pipeline
         self.collector = FRRTelemetryCollector(router_container=router, poll_interval=poll_interval, total_configured_peers=total_configured_peers)
-        self.feature_extractor = BGPFeatureExtractor()
+        self.feature_extractor = BGPFeatureExtractor(baseline_origin_as=baseline_origin_as, baseline_as_path=baseline_as_path)
         self.classifier = BGPClassifier(model_type=model_type)
         self.decision_engine = HybridDecisionEngine(classifier=self.classifier)
 
@@ -60,7 +62,7 @@ class AutonomousBGPController:
         self.policy_engine = BGPPolicyEngine(router=router, peer_ip=peer_ip)
         self.shadow_validator = ShadowValidator(shadow_duration_sec=shadow_sec, required_consecutive_ticks=2)
         self.rollback_manager = RollbackManager(required_normal_ticks=3)
-        self.state_store = ControllerStateStore()
+        self.state_store = ControllerStateStore(router_name=router)
 
         # Controller-owned inter-task queues and synchronization
         self._snapshot_q: asyncio.Queue = asyncio.Queue(maxsize=8)
@@ -377,13 +379,16 @@ class AutonomousBGPController:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Async Autonomous BGP Controller")
     parser.add_argument("--router", default="as65003", help="Target router container")
-    parser.add_argument("--peer", default="10.0.23.2", help="Inbound peering IP")
+    parser.add_argument("--peer", default="10.0.13.2", help="Inbound peering IP")
+    parser.add_argument("--peers", type=int, default=3, help="Total configured peers count")
     parser.add_argument("--interval", type=float, default=1.0, help="Control loop interval (sec)")
     parser.add_argument("--duration", type=float, default=None, help="Optional run duration (sec)")
     parser.add_argument("--shadow", type=float, default=4.0, help="Shadow validation duration (sec)")
     parser.add_argument("--model", choices=["random_forest", "logistic_regression"], default="random_forest", help="Classifier model")
     parser.add_argument("--heartbeat", type=float, default=10.0, help="Heartbeat interval (sec)")
     parser.add_argument("--metrics-interval", type=float, default=5.0, help="Metrics interval (sec)")
+    parser.add_argument("--baseline-origin", type=int, default=65007, help="Baseline origin AS")
+    parser.add_argument("--baseline-path", default="65003 65001", help="Baseline AS path")
     args = parser.parse_args()
 
     configure_asyncio_policy()
@@ -394,7 +399,10 @@ if __name__ == "__main__":
         poll_interval=args.interval,
         shadow_sec=args.shadow,
         model_type=args.model,
+        total_configured_peers=args.peers,
         heartbeat_interval=args.heartbeat,
-        metrics_interval=args.metrics_interval
+        metrics_interval=args.metrics_interval,
+        baseline_origin_as=args.baseline_origin,
+        baseline_as_path=args.baseline_path
     )
     asyncio.run(controller.run(duration=args.duration))

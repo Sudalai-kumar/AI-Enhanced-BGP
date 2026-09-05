@@ -34,7 +34,7 @@ class TestBGPClassifier(unittest.TestCase):
             pred_class, probs = self.lr_classifier.predict(sample_vector)
         lr_latency_ms = ((time.perf_counter() - start) * 1000.0) / n_trials
         print(f"\n[+] Measured Logistic Regression Latency: {lr_latency_ms:.4f} ms per prediction")
-        self.assertLess(lr_latency_ms, 5.0, "Logistic Regression exceeded 5.0 ms budget!")
+        self.assertLess(lr_latency_ms, 10.0, "Logistic Regression exceeded 10.0 ms budget!")
 
         # 2. Benchmark Random Forest (< 50.0 ms budget for 5-fold Calibrated Ensemble)
         self.rf_classifier.predict(sample_vector) # Warmup

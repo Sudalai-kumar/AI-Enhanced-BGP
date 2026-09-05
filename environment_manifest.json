@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-26T17:19:12Z",
-  "git_commit": "69cf0178f4151f2ed49519555250ff1a4895a0f0",
+  "generated_at": "2026-09-05T13:37:34Z",
+  "git_commit": "53fb4836f0c53e570510c7a960c7e056ba87a740",
   "python_version": "3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]",
   "platform": "Windows-11-10.0.26200-SP0",
   "docker_version": "Docker version 29.7.2, build a7dcaa6",
@@ -11,5 +11,5 @@
   "model_rf_sha256": "f41dfe7ec0e775d2acdff5aabc6341133d787edfb476dd69844e2b9736d60568",
   "model_lr_sha256": "a65e625b00f69f309765a6784ae5bd0464f711ebaa2d5da4b0a77a5bae907f4f",
   "model_scaler_sha256": "2cf77f110c51d45bf0fb8215a13faf85c8008e678838542f2fd3051be4a3277a",
-  "model_metadata_sha256": "a003beeef814e26d44770c2bfeaa054a9184ed65aca8d35f049d6fd4442a52db"
+  "model_metadata_sha256": "b72441f887ca9126cd1bcbfc0f0c612982c5687ea57d1862e244f6271f1afe25"
 }

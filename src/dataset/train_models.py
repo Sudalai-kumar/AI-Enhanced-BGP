@@ -272,6 +272,230 @@ def train_and_save_models(n_samples: int = 15000,
     print(f"[+] Artifacts persisted:\n  - {MODELS_DIR}/\n  - {eval_json_path}")
 
 
+def train_from_real_data(jsonl_path: str = None):
+    """
+    Trains and evaluates Random Forest and Logistic Regression classifiers on
+    real empirical telemetry collected from the 10-AS testbed.
+    Uses temporal holdout: first 80% chronologically for train, last 20% for test.
+    """
+    import pandas as pd
+    if jsonl_path is None:
+        jsonl_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "raw", "bgp_real_training.jsonl"))
+
+    if not os.path.exists(jsonl_path):
+        raise FileNotFoundError(f"Empirical training dataset not found at {jsonl_path}. Run scripts/collect_training_data.py first.")
+
+    os.makedirs(MODELS_DIR, exist_ok=True)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+
+    print(f"[*] Loading empirical telemetry dataset from {jsonl_path}...")
+    df = pd.read_json(jsonl_path, lines=True)
+
+    if "timestamp" in df.columns:
+        df = df.sort_values(by="timestamp").reset_index(drop=True)
+
+    feature_cols = FEATURE_NAMES
+    X = df[feature_cols].values
+    y = df["label"].astype(int).values
+
+    n_samples = len(df)
+    if "trial" in df.columns and df["trial"].nunique() > 1:
+        max_trial = df["trial"].max()
+        train_mask = df["trial"] < max_trial
+        test_mask = df["trial"] == max_trial
+        X_train = df.loc[train_mask, feature_cols].values
+        y_train = df.loc[train_mask, "label"].astype(int).values
+        X_test = df.loc[test_mask, feature_cols].values
+        y_test = df.loc[test_mask, "label"].astype(int).values
+        split_method = f"trial_based_holdout (Train=Trials 1..{max_trial-1}, Test=Trial {max_trial})"
+        train_df = df.loc[train_mask]
+        test_df = df.loc[test_mask]
+    else:
+        from sklearn.model_selection import train_test_split
+        strat = y if len(np.unique(y)) > 1 else None
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42, stratify=strat)
+        split_method = "stratified_holdout_75_25"
+        train_df = df.iloc[:len(X_train)]
+        test_df = df.iloc[len(X_train):]
+
+    print(f"[+] Loaded {n_samples} empirical samples.")
+    print(f"[+] Split method: {split_method} -> Train={len(X_train)}, Test={len(X_test)}")
+
+    train_dataset_sha256 = _sha256_dataframe(train_df)
+    test_dataset_sha256 = _sha256_dataframe(test_df)
+
+    # Fit Scaler strictly on training data
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+
+    # 1. Train & Calibrate Random Forest
+    rf_base = RandomForestClassifier(
+        n_estimators=50,
+        max_depth=12,
+        class_weight="balanced",
+        random_state=42,
+        n_jobs=1
+    )
+    n_unique_classes = len(np.unique(y_train))
+    cv_folds = min(5, n_unique_classes) if n_unique_classes > 1 else 2
+    try:
+        rf_calibrated = CalibratedClassifierCV(estimator=rf_base, cv=cv_folds, method="isotonic")
+        rf_calibrated.fit(X_train_scaled, y_train)
+    except Exception:
+        rf_base.fit(X_train_scaled, y_train)
+        rf_calibrated = rf_base
+
+    rf_base.fit(X_train_scaled, y_train)
+    feature_importances = {
+        name: round(float(imp), 4)
+        for name, imp in zip(FEATURE_NAMES, rf_base.feature_importances_)
+    }
+
+    # 2. Train & Calibrate Logistic Regression
+    lr_base = LogisticRegression(
+        max_iter=1000,
+        class_weight="balanced",
+        random_state=42
+    )
+    try:
+        lr_calibrated = CalibratedClassifierCV(estimator=lr_base, cv=cv_folds, method="sigmoid")
+        lr_calibrated.fit(X_train_scaled, y_train)
+    except Exception:
+        lr_base.fit(X_train_scaled, y_train)
+        lr_calibrated = lr_base
+
+    # 3. Evaluate
+    rf_preds = rf_calibrated.predict(X_test_scaled)
+    lr_preds = lr_calibrated.predict(X_test_scaled)
+
+    present_labels = sorted(list(set(y_test) | set(rf_preds) | set(lr_preds)))
+    target_names_subset = [TARGET_NAMES[i] for i in present_labels if i < len(TARGET_NAMES)]
+
+    rf_report = classification_report(y_test, rf_preds, labels=present_labels, target_names=target_names_subset, output_dict=True, zero_division=0)
+    lr_report = classification_report(y_test, lr_preds, labels=present_labels, target_names=target_names_subset, output_dict=True, zero_division=0)
+
+    rf_cm = confusion_matrix(y_test, rf_preds, labels=[0, 1, 2, 3]).tolist()
+    lr_cm = confusion_matrix(y_test, lr_preds, labels=[0, 1, 2, 3]).tolist()
+
+    rf_f1_macro = float(f1_score(y_test, rf_preds, average="macro", zero_division=0))
+    rf_f1_weighted = float(f1_score(y_test, rf_preds, average="weighted", zero_division=0))
+    lr_f1_macro = float(f1_score(y_test, lr_preds, average="macro", zero_division=0))
+    lr_f1_weighted = float(f1_score(y_test, lr_preds, average="weighted", zero_division=0))
+
+    print(f"[+] Temporal Test F1 (macro): RF={rf_f1_macro:.4f} | LR={lr_f1_macro:.4f}")
+    print(f"[+] Temporal Test F1 (weighted): RF={rf_f1_weighted:.4f} | LR={lr_f1_weighted:.4f}")
+
+    # 4. False-positive rate on challenge set
+    df_fp = generate_false_positive_set(n_samples=1000, random_state=77)
+    X_fp = scaler.transform(df_fp[feature_cols].values)
+    rf_fp_preds = rf_calibrated.predict(X_fp)
+    lr_fp_preds = lr_calibrated.predict(X_fp)
+    rf_fpr = float(np.mean(rf_fp_preds != 0))
+    lr_fpr = float(np.mean(lr_fp_preds != 0))
+    print(f"[+] False Positive Rate: RF={rf_fpr:.4f} | LR={lr_fpr:.4f}")
+
+    # 5. Persist
+    scaler_path = os.path.join(MODELS_DIR, "scaler.joblib")
+    rf_path = os.path.join(MODELS_DIR, "random_forest.joblib")
+    lr_path = os.path.join(MODELS_DIR, "logistic_regression.joblib")
+
+    joblib.dump(scaler, scaler_path)
+    joblib.dump(rf_calibrated, rf_path)
+    joblib.dump(lr_calibrated, lr_path)
+
+    rf_sha256 = _sha256_file(rf_path)
+    lr_sha256 = _sha256_file(lr_path)
+    git_commit = _git_commit()
+    timestamp = datetime.datetime.utcnow().isoformat() + "Z"
+
+    metadata = {
+        "model_version": "bgp-v3.0-empirical-10as",
+        "training_source": "empirical_frr_testbed_10as",
+        "dataset_file": os.path.basename(jsonl_path),
+        "training_timestamp": timestamp,
+        "git_commit": git_commit,
+        "evaluation_method": "temporal_80_20_holdout",
+        "evaluation_method_note": (
+            "Chronological 80/20 train/test split on live empirical telemetry records "
+            "collected from dual monitoring routers (AS65001 Core and AS65003 Edge)."
+        ),
+        "feature_count": len(FEATURE_NAMES),
+        "feature_names": FEATURE_NAMES,
+        "sample_counts": {
+            "train": len(X_train),
+            "test": len(X_test),
+            "false_positive_challenge": len(X_fp)
+        },
+        "dataset_sha256": {
+            "train": train_dataset_sha256,
+            "test": test_dataset_sha256
+        },
+        "models": {
+            "random_forest": {
+                "algorithm": "RandomForestClassifier (50 estimators, max_depth=12)",
+                "calibration": "CalibratedClassifierCV (isotonic)",
+                "test_macro_f1": round(rf_f1_macro, 4),
+                "test_weighted_f1": round(rf_f1_weighted, 4),
+                "false_positive_rate": round(rf_fpr, 4),
+                "model_sha256": rf_sha256
+            },
+            "logistic_regression": {
+                "algorithm": "LogisticRegression (max_iter=1000, balanced)",
+                "calibration": "CalibratedClassifierCV (sigmoid)",
+                "test_macro_f1": round(lr_f1_macro, 4),
+                "test_weighted_f1": round(lr_f1_weighted, 4),
+                "false_positive_rate": round(lr_fpr, 4),
+                "model_sha256": lr_sha256
+            }
+        }
+    }
+
+    with open(os.path.join(MODELS_DIR, "model_metadata.json"), "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2)
+
+    eval_results = {
+        "evaluation_method": "temporal_80_20_holdout",
+        "training_source": "empirical_frr_testbed_10as",
+        "dataset_file": os.path.basename(jsonl_path),
+        "training_timestamp": timestamp,
+        "git_commit": git_commit,
+        "dataset_summary": {
+            "train_samples": len(X_train),
+            "test_samples": len(X_test),
+            "false_positive_challenge_samples": len(X_fp),
+            "features": FEATURE_NAMES,
+            "dataset_sha256": {
+                "train": train_dataset_sha256,
+                "test": test_dataset_sha256
+            }
+        },
+        "random_forest": {
+            "macro_f1": round(rf_f1_macro, 4),
+            "weighted_f1": round(rf_f1_weighted, 4),
+            "false_positive_rate": round(rf_fpr, 4),
+            "feature_importances": feature_importances,
+            "classification_report": rf_report,
+            "confusion_matrix": rf_cm,
+            "model_sha256": rf_sha256
+        },
+        "logistic_regression": {
+            "macro_f1": round(lr_f1_macro, 4),
+            "weighted_f1": round(lr_f1_weighted, 4),
+            "false_positive_rate": round(lr_fpr, 4),
+            "classification_report": lr_report,
+            "confusion_matrix": lr_cm,
+            "model_sha256": lr_sha256
+        }
+    }
+
+    eval_json_path = os.path.join(RESULTS_DIR, "model_training_evaluation.json")
+    with open(eval_json_path, "w", encoding="utf-8") as f:
+        json.dump(eval_results, f, indent=2)
+
+    print(f"[+] Artifacts persisted:\n  - {MODELS_DIR}/\n  - {eval_json_path}")
+
+
 train_and_evaluate = train_and_save_models
 
 if __name__ == "__main__":

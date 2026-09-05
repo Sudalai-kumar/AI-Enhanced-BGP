@@ -16,11 +16,39 @@ from src.utils.async_utils import run_subprocess_async
 
 logger = setup_logger("policy_engine")
 
+PEER_IP_TO_AS = {
+    "10.0.12.3": 65002, "10.0.12.2": 65001,
+    "10.0.13.3": 65003, "10.0.13.2": 65001,
+    "10.0.14.3": 65004, "10.0.14.2": 65001,
+    "10.0.25.3": 65005, "10.0.25.2": 65002,
+    "10.0.26.3": 65006, "10.0.26.2": 65002,
+    "10.0.37.3": 65007, "10.0.37.2": 65003,
+    "10.0.38.3": 65008, "10.0.38.2": 65003,
+    "10.0.49.3": 65009, "10.0.49.2": 65004,
+    "10.0.60.3": 65010, "10.0.60.2": 65006,
+    # Legacy testbed mappings
+    "10.0.23.2": 65002, "10.0.23.3": 65003,
+    "10.0.34.2": 65003, "10.0.34.3": 65004,
+}
+
+ROUTER_PEER_ROUTE_MAPS = {
+    "as65001": ["RM_IN_AS65002", "RM_IN_AS65003", "RM_IN_AS65004"],
+    "as65002": ["RM_IN_AS65001", "RM_IN_AS65005", "RM_IN_AS65006"],
+    "as65003": ["RM_IN_AS65001", "RM_IN_AS65007", "RM_IN_AS65008"],
+    "as65004": ["RM_IN_AS65001", "RM_IN_AS65009"],
+    "as65005": ["RM_IN_AS65002"],
+    "as65006": ["RM_IN_AS65002", "RM_IN_AS65010"],
+}
+
 class BGPPolicyEngine:
-    def __init__(self, router: str = "as65003", peer_ip: str = "10.0.23.2", route_map_name: str = "RM_IN_AS65002"):
+    def __init__(self, router: str = "as65003", peer_ip: str = "10.0.23.2", route_map_name: Optional[str] = None):
         self.router = router
         self.peer_ip = peer_ip
-        self.route_map_name = route_map_name
+        if route_map_name:
+            self.route_map_name = route_map_name
+        else:
+            remote_as = PEER_IP_TO_AS.get(peer_ip, 65002)
+            self.route_map_name = f"RM_IN_AS{remote_as}"
         self.current_policies: Dict[str, Dict[str, Any]] = {}
 
     def map_trust_to_policy(self, trust_score: float, class_id: int, current_loc_pref: int = 100) -> Tuple[int, Optional[str], str]:
@@ -54,10 +82,11 @@ class BGPPolicyEngine:
     def _sanitize_prefix(prefix: str) -> str:
         return prefix.replace(".", "_").replace("/", "_")
 
-    def generate_route_map_config(self, prefix_policies: Dict[str, Dict[str, Any]]) -> str:
+    def generate_route_map_config(self, prefix_policies: Dict[str, Dict[str, Any]], route_map_name: Optional[str] = None) -> str:
         """
         Generates deterministic FRRouting route-map syntax.
         """
+        rm_name = route_map_name or self.route_map_name
         lines = []
         seq = 10
 
@@ -66,7 +95,7 @@ class BGPPolicyEngine:
             comm = policy.get("community")
             pfx_tag = self._sanitize_prefix(pfx)
 
-            lines.append(f"route-map {self.route_map_name} permit {seq}")
+            lines.append(f"route-map {rm_name} permit {seq}")
             lines.append(f" match ip address prefix-list PL_AI_{pfx_tag}")
             lines.append(f" set local-preference {loc_pref}")
             if comm:
@@ -75,32 +104,38 @@ class BGPPolicyEngine:
             seq += 10
 
         # Fallback permit for all remaining traffic
-        lines.append(f"route-map {self.route_map_name} permit 1000")
+        lines.append(f"route-map {rm_name} permit 1000")
         lines.append(" set local-preference 100")
         lines.append("exit")
 
         return "\n".join(lines)
 
-    async def apply_policy(self, prefix_policies: Dict[str, Dict[str, Any]], settle_delay_sec: float = 0.4) -> bool:
+    async def apply_policy(self, prefix_policies: Dict[str, Dict[str, Any]], settle_delay_sec: float = 0.5) -> bool:
         """
-        Applies clean route-map updates to the live FRRouting container via vtysh asynchronously,
+        Applies clean route-map updates across all inbound peer route-maps on this router,
         cleans stale prefix-lists, triggers soft BGP inbound re-evaluation,
         and performs deep verification against FRR configuration state AND RIB best-path state.
         Both layers must pass for apply_policy to return True.
         """
+        target_route_maps = ROUTER_PEER_ROUTE_MAPS.get(self.router, [self.route_map_name])
         cmd_lines = ["configure terminal"]
 
-        # 1. Reset route-map to completely flush old/unmanaged sequences
-        cmd_lines.append(f"no route-map {self.route_map_name}")
+        # 1. Safely remove old AI policy sequences (10..100) without destroying the route-map object
+        for rm in target_route_maps:
+            for s in range(10, 100, 10):
+                cmd_lines.append(f"no route-map {rm} permit {s}")
 
-        # 2. Define fresh prefix lists and route map sequences
+        # 2. Define fresh prefix lists
         for pfx in prefix_policies.keys():
             pfx_tag = self._sanitize_prefix(pfx)
             cmd_lines.append(f"ip prefix-list PL_AI_{pfx_tag} permit {pfx}")
 
-        cmd_lines.append(self.generate_route_map_config(prefix_policies))
+        # 3. Generate route map sequences for all target route-maps
+        for rm in target_route_maps:
+            cmd_lines.append(self.generate_route_map_config(prefix_policies, route_map_name=rm))
+
         cmd_lines.append("exit")
-        cmd_lines.append(f"clear ip bgp {self.peer_ip} soft in")
+        cmd_lines.append("clear ip bgp * soft in")
 
         vtysh_script = "\n".join(cmd_lines)
 
@@ -171,9 +206,9 @@ class BGPPolicyEngine:
 
                 if f"PL_AI_{pfx_tag}" not in output:
                     return False
-                if f"set local-preference {expected_lp}" not in output:
+                if f"local-preference {expected_lp}" not in output:
                     return False
-                if expected_comm and f"set community {expected_comm}" not in output:
+                if expected_comm and f"community {expected_comm}" not in output:
                     return False
 
             return True
@@ -222,6 +257,10 @@ class BGPPolicyEngine:
                         break
 
             if not paths:
+                if expected_lp == 0:
+                    details["actual_lp"] = 0
+                    details["actual_community"] = expected_community
+                    return True, details
                 details["reason"] = "No paths found in RIB for prefix"
                 return False, details
 

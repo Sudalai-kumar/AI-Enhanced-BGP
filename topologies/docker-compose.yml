@@ -1,3 +1,4 @@
+# Auto-generated 10-AS BGP Testbed Compose File
 services:
   as65001:
     image: quay.io/frrouting/frr:10.2.1
@@ -14,6 +15,10 @@ services:
     networks:
       net_12:
         ipv4_address: 10.0.12.2
+      net_13:
+        ipv4_address: 10.0.13.2
+      net_14:
+        ipv4_address: 10.0.14.2
     restart: unless-stopped
 
   as65002:
@@ -31,8 +36,10 @@ services:
     networks:
       net_12:
         ipv4_address: 10.0.12.3
-      net_23:
-        ipv4_address: 10.0.23.2
+      net_25:
+        ipv4_address: 10.0.25.2
+      net_26:
+        ipv4_address: 10.0.26.2
     restart: unless-stopped
 
   as65003:
@@ -48,10 +55,12 @@ services:
       - ../config/as65003/frr.conf:/etc/frr/frr.conf:ro
       - ../config/as65003/vtysh.conf:/etc/frr/vtysh.conf:ro
     networks:
-      net_23:
-        ipv4_address: 10.0.23.3
-      net_34:
-        ipv4_address: 10.0.34.2
+      net_13:
+        ipv4_address: 10.0.13.3
+      net_37:
+        ipv4_address: 10.0.37.2
+      net_38:
+        ipv4_address: 10.0.38.2
     restart: unless-stopped
 
   as65004:
@@ -67,8 +76,114 @@ services:
       - ../config/as65004/frr.conf:/etc/frr/frr.conf:ro
       - ../config/as65004/vtysh.conf:/etc/frr/vtysh.conf:ro
     networks:
-      net_34:
-        ipv4_address: 10.0.34.3
+      net_14:
+        ipv4_address: 10.0.14.3
+      net_49:
+        ipv4_address: 10.0.49.2
+    restart: unless-stopped
+
+  as65005:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65005
+    hostname: as65005
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65005/daemons:/etc/frr/daemons:ro
+      - ../config/as65005/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65005/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_25:
+        ipv4_address: 10.0.25.3
+    restart: unless-stopped
+
+  as65006:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65006
+    hostname: as65006
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65006/daemons:/etc/frr/daemons:ro
+      - ../config/as65006/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65006/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_26:
+        ipv4_address: 10.0.26.3
+      net_610:
+        ipv4_address: 10.0.60.2
+    restart: unless-stopped
+
+  as65007:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65007
+    hostname: as65007
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65007/daemons:/etc/frr/daemons:ro
+      - ../config/as65007/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65007/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_37:
+        ipv4_address: 10.0.37.3
+    restart: unless-stopped
+
+  as65008:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65008
+    hostname: as65008
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65008/daemons:/etc/frr/daemons:ro
+      - ../config/as65008/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65008/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_38:
+        ipv4_address: 10.0.38.3
+    restart: unless-stopped
+
+  as65009:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65009
+    hostname: as65009
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65009/daemons:/etc/frr/daemons:ro
+      - ../config/as65009/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65009/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_49:
+        ipv4_address: 10.0.49.3
+    restart: unless-stopped
+
+  as65010:
+    image: quay.io/frrouting/frr:10.2.1
+    container_name: as65010
+    hostname: as65010
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - NET_RAW
+    volumes:
+      - ../config/as65010/daemons:/etc/frr/daemons:ro
+      - ../config/as65010/frr.conf:/etc/frr/frr.conf:ro
+      - ../config/as65010/vtysh.conf:/etc/frr/vtysh.conf:ro
+    networks:
+      net_610:
+        ipv4_address: 10.0.60.3
     restart: unless-stopped
 
 networks:
@@ -79,17 +194,59 @@ networks:
       config:
         - subnet: 10.0.12.0/29
           gateway: 10.0.12.1
-  net_23:
+  net_13:
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: 10.0.23.0/29
-          gateway: 10.0.23.1
-  net_34:
+        - subnet: 10.0.13.0/29
+          gateway: 10.0.13.1
+  net_14:
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: 10.0.34.0/29
-          gateway: 10.0.34.1
+        - subnet: 10.0.14.0/29
+          gateway: 10.0.14.1
+  net_25:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.25.0/29
+          gateway: 10.0.25.1
+  net_26:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.26.0/29
+          gateway: 10.0.26.1
+  net_37:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.37.0/29
+          gateway: 10.0.37.1
+  net_38:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.38.0/29
+          gateway: 10.0.38.1
+  net_49:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.49.0/29
+          gateway: 10.0.49.1
+  net_610:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.0.60.0/29
+          gateway: 10.0.60.1

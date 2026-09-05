@@ -135,10 +135,20 @@ class FRRTelemetryCollector:
 
             distinct_nexthops = set()
             for path in path_list:
-                distinct_nexthops.add(path.get("nexthop", ""))
+                for nh in path.get("nexthops", []):
+                    if isinstance(nh, dict) and nh.get("ip"):
+                        distinct_nexthops.add(nh["ip"])
+                nexthop_ip = path.get("nexthop", "")
+                if not nexthop_ip and path.get("nexthops"):
+                    nexthop_ip = path["nexthops"][0].get("ip", "")
+                if nexthop_ip:
+                    distinct_nexthops.add(nexthop_ip)
 
-                aspath_obj = path.get("aspath", {})
-                aspath_str = aspath_obj.get("string", "") if isinstance(aspath_obj, dict) else str(aspath_obj)
+                aspath_val = path.get("path") if path.get("path") is not None else path.get("aspath", {})
+                if isinstance(aspath_val, dict):
+                    aspath_str = aspath_val.get("string", "")
+                else:
+                    aspath_str = str(aspath_val or "").strip()
                 
                 tokens = aspath_str.split()
                 origin_as = int(tokens[-1]) if tokens and tokens[-1].isdigit() else 0

@@ -5,8 +5,7 @@ __pycache__/
 htmlcov/
 *.log
 logs/
-data/telemetry.db
-data/controller_state.db
+data/*.db
 data/raw/
 .env
 .venv

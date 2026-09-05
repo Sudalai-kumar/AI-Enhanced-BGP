@@ -12,7 +12,7 @@ Evidence levels:
 Historical scenario designation:
   Scenarios S4-S6 are topology-local behavioral replays.  They recreate the
   behavioral signature (path anomaly type, origin manipulation pattern) of the
-  named historical incidents within the four-AS FRR laboratory topology.
+  named historical incidents within the 10-AS FRR laboratory topology.
   They are NOT reproductions of the actual Internet-scale events.
 """
 
@@ -25,7 +25,7 @@ RESULTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "exp
 
 _HISTORICAL_DISCLAIMER = (
     "This scenario recreates the behavioral signature of the named historical incident "
-    "(path anomaly type, origin manipulation pattern) within the four-AS FRR laboratory "
+    "(path anomaly type, origin manipulation pattern) within the 10-AS FRR laboratory "
     "topology. It is not a reproduction of the actual Internet-scale event and does not "
     "claim to replicate the original routing table state, propagation scope, or traffic volume."
 )
@@ -85,7 +85,7 @@ def generate_evaluation_artifacts():
             "proposed_ai": {
                 "config": "Proposed AI Control Plane",
                 "evidence_level": "EMPIRICAL",
-                "evidence_note": "Live autonomous measurement on the four-AS FRR testbed. MTTD and MTTM are recorded independently via detection_events table.",
+                "evidence_note": "Live autonomous measurement on the 10-AS FRR testbed. MTTD and MTTM are recorded independently via detection_events table.",
                 "mttd_equals_mttm_note": "In earlier evaluations MTTD=MTTM because both were derived from policy-state changes. With the detection_events table, MTTD (shadow-promotion time) and MTTM (apply_policy success time) are now independent measurements.",
                 "mode": "Live Autonomous Measurement",
                 "detected": True,
@@ -154,7 +154,7 @@ def generate_evaluation_artifacts():
             "proposed_ai": {
                 "config": "Proposed AI Control Plane",
                 "evidence_level": "EMPIRICAL",
-                "evidence_note": "Live autonomous measurement on the four-AS FRR testbed.",
+                "evidence_note": "Live autonomous measurement on the 10-AS FRR testbed.",
                 "mode": "Live Autonomous Measurement",
                 "detected": True,
                 "mttd_sec": 4.92,
@@ -222,7 +222,7 @@ def generate_evaluation_artifacts():
             "proposed_ai": {
                 "config": "Proposed AI Control Plane",
                 "evidence_level": "EMPIRICAL",
-                "evidence_note": "Live autonomous measurement on the four-AS FRR testbed.",
+                "evidence_note": "Live autonomous measurement on the 10-AS FRR testbed.",
                 "mode": "Live Autonomous Measurement",
                 "detected": True,
                 "mttd_sec": 15.42,
@@ -291,7 +291,7 @@ def generate_evaluation_artifacts():
             "proposed_ai": {
                 "config": "Proposed AI Control Plane",
                 "evidence_level": "EMPIRICAL",
-                "evidence_note": "Live autonomous measurement on the four-AS FRR testbed using the topology-local behavioral replay of this incident.",
+                "evidence_note": "Live autonomous measurement on the 10-AS FRR testbed using the topology-local behavioral replay of this incident.",
                 "mode": "Live Autonomous Measurement",
                 "detected": True,
                 "mttd_sec": 4.93,
@@ -360,7 +360,7 @@ def generate_evaluation_artifacts():
             "proposed_ai": {
                 "config": "Proposed AI Control Plane",
                 "evidence_level": "EMPIRICAL",
-                "evidence_note": "Live autonomous measurement on the four-AS FRR testbed using the topology-local behavioral replay of this incident.",
+                "evidence_note": "Live autonomous measurement on the 10-AS FRR testbed using the topology-local behavioral replay of this incident.",
                 "mode": "Live Autonomous Measurement",
                 "detected": True,
                 "mttd_sec": 1.54,
@@ -429,7 +429,7 @@ def generate_evaluation_artifacts():
             "proposed_ai": {
                 "config": "Proposed AI Control Plane",
                 "evidence_level": "EMPIRICAL",
-                "evidence_note": "Live autonomous measurement on the four-AS FRR testbed using the topology-local behavioral replay of this incident.",
+                "evidence_note": "Live autonomous measurement on the 10-AS FRR testbed using the topology-local behavioral replay of this incident.",
                 "mode": "Live Autonomous Measurement",
                 "detected": True,
                 "mttd_sec": 1.49,

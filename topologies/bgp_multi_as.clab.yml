@@ -1,4 +1,4 @@
-name: bgp-ai-mesh
+name: bgp-ai-mesh-10as
 
 topology:
   nodes:
@@ -34,10 +34,61 @@ topology:
         - ../config/as65004/frr.conf:/etc/frr/frr.conf
         - ../config/as65004/vtysh.conf:/etc/frr/vtysh.conf
 
+    as65005:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65005/daemons:/etc/frr/daemons
+        - ../config/as65005/frr.conf:/etc/frr/frr.conf
+        - ../config/as65005/vtysh.conf:/etc/frr/vtysh.conf
+
+    as65006:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65006/daemons:/etc/frr/daemons
+        - ../config/as65006/frr.conf:/etc/frr/frr.conf
+        - ../config/as65006/vtysh.conf:/etc/frr/vtysh.conf
+
+    as65007:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65007/daemons:/etc/frr/daemons
+        - ../config/as65007/frr.conf:/etc/frr/frr.conf
+        - ../config/as65007/vtysh.conf:/etc/frr/vtysh.conf
+
+    as65008:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65008/daemons:/etc/frr/daemons
+        - ../config/as65008/frr.conf:/etc/frr/frr.conf
+        - ../config/as65008/vtysh.conf:/etc/frr/vtysh.conf
+
+    as65009:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65009/daemons:/etc/frr/daemons
+        - ../config/as65009/frr.conf:/etc/frr/frr.conf
+        - ../config/as65009/vtysh.conf:/etc/frr/vtysh.conf
+
+    as65010:
+      kind: linux
+      image: quay.io/frrouting/frr:10.2.1
+      binds:
+        - ../config/as65010/daemons:/etc/frr/daemons
+        - ../config/as65010/frr.conf:/etc/frr/frr.conf
+        - ../config/as65010/vtysh.conf:/etc/frr/vtysh.conf
+
   links:
-    # Link AS65001 (eth1: 10.0.12.2/29) <-> AS65002 (eth1: 10.0.12.3/29)
     - endpoints: ["as65001:eth1", "as65002:eth1"]
-    # Link AS65002 (eth2: 10.0.23.2/29) <-> AS65003 (eth1: 10.0.23.3/29)
-    - endpoints: ["as65002:eth2", "as65003:eth1"]
-    # Link AS65003 (eth2: 10.0.34.2/29) <-> AS65004 (eth1: 10.0.34.3/29)
-    - endpoints: ["as65003:eth2", "as65004:eth1"]
+    - endpoints: ["as65001:eth2", "as65003:eth1"]
+    - endpoints: ["as65001:eth3", "as65004:eth1"]
+    - endpoints: ["as65002:eth2", "as65005:eth1"]
+    - endpoints: ["as65002:eth3", "as65006:eth1"]
+    - endpoints: ["as65003:eth2", "as65007:eth1"]
+    - endpoints: ["as65003:eth3", "as65008:eth1"]
+    - endpoints: ["as65004:eth2", "as65009:eth1"]
+    - endpoints: ["as65006:eth2", "as65010:eth1"]

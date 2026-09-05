@@ -10,13 +10,17 @@ from tabulate import tabulate
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from experiments.comparative.benchmark_evaluator import ComparativeEvaluator
 
+import asyncio
+from src.utils.async_utils import configure_asyncio_policy
+
 def main():
+    configure_asyncio_policy()
     parser = argparse.ArgumentParser(description="Week 8 Attack Evaluation Runner")
     parser.add_argument("--iterations", type=int, default=3, help="Benchmark iterations")
     args = parser.parse_args()
 
     evaluator = ComparativeEvaluator()
-    results = evaluator.run_all_benchmarks(iterations=args.iterations)
+    results = asyncio.run(evaluator.run_all_benchmarks(iterations=args.iterations))
 
     print("\n" + "=" * 115)
     print(" WEEK 8 ATTACK SIMULATION & 4-WAY COMPARATIVE EVALUATION MATRIX")
