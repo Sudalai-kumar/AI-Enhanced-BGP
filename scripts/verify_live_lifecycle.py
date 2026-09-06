@@ -1,26 +1,29 @@
 """
-Live Closed-Loop Validation Experiment for Week 7:
-1. Starts Autonomous Controller on as65003 in background.
+Live Closed-Loop Validation Experiment on 10-AS Topology:
+1. Starts Autonomous Controller on Edge Defender (as65003) in background task.
 2. Observes steady-state Normal operation (Trust=1.00, LP=100).
-3. Injects Rogue Origin AS 65004 advertisement (Prefix Hijack) for 192.0.2.0/24 on as65001.
+3. Injects Rogue Prefix Hijack on as65010 for 192.0.2.0/24.
 4. Records Autonomous Quarantine & no-export application (MTTD & MTTM).
-5. Confirms with neighbor as65004 that 192.0.2.0/24 is NOT re-advertised.
-6. Restores legitimate Origin AS 65001.
+5. Confirms with neighbor as65008 that 192.0.2.0/24 is NOT leaked/propagated.
+6. Restores legitimate Origin AS 65007.
 7. Observes recovery streak and Autonomous Rollback to LocalPref 100.
 """
 
-import subprocess
-import time
 import sys
 import os
+import time
+import asyncio
+import subprocess
 
 # Ensure root in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.policy.policy_engine import BGPPolicyEngine
-from src.ai.agent import BGPAIAgent
 from src.utils.logger import setup_logger
+from src.utils.async_utils import configure_asyncio_policy
+from scripts.run_autonomous_controller import AutonomousBGPController
+from experiments.attacks.attack_injector import BGPAttackInjector
 
 logger = setup_logger("live_lifecycle_test")
+
 
 def run_vtysh(container: str, commands: list):
     full_cmd = ["docker", "exec", container, "vtysh"]
@@ -29,100 +32,109 @@ def run_vtysh(container: str, commands: list):
     res = subprocess.run(full_cmd, capture_output=True, text=True)
     return res.returncode, res.stdout, res.stderr
 
-def test_full_lifecycle():
-    print("=" * 70)
-    print(" WEEK 7 LIVE CLOSED-LOOP VALIDATION: ANOMALY -> QUARANTINE -> ROLLBACK")
-    print("=" * 70)
 
-    # 1. Start with fresh policy on as65003 (LP 100)
-    policy_engine = BGPPolicyEngine(router="as65003", peer_ip="10.0.23.2")
-    policy_engine.apply_policy({"192.0.2.0/24": {"loc_pref": 100, "community": None}})
-    
-    from scripts.run_autonomous_controller import AutonomousBGPController
-    controller = AutonomousBGPController(router="as65003", peer_ip="10.0.23.2", poll_interval=1.0, shadow_sec=2.0)
-    
-    print("\n--- PHASE 1: Baseline Steady State ---")
-    controller.step()
-    time.sleep(1.0)
-    controller.step()
+async def test_full_lifecycle_async():
+    print("=" * 75)
+    print(" 10-AS LIVE CLOSED-LOOP LIFECYCLE: NORMAL -> ATTACK -> MITIGATION -> RECOVERY")
+    print("=" * 75)
 
-    print("\n--- PHASE 2: Injecting Origin Hijack (Rogue AS 65004 advertised on as65001) ---")
-    start_attack = time.time()
-    run_vtysh("as65001", [
-        "configure terminal",
-        "route-map RM_OUT permit 10",
-        " set as-path prepend 65004 65004",
-        "exit",
-        "exit",
-        "clear ip bgp 10.0.12.3 soft out"
-    ])
-    
-    # Run controller step to catch and quarantine the hijack
-    detected = False
+    injector = BGPAttackInjector(rogue_container="as65010", origin_container="as65007")
+    await injector.cleanup_all_attacks()
+
+    # Initialize controller on Edge Defender as65003 (peering with core as65001)
+    controller = AutonomousBGPController(
+        router="as65003",
+        peer_ip="10.0.13.2",
+        poll_interval=0.5,
+        shadow_sec=1.0,
+        model_type="random_forest",
+        total_configured_peers=3,
+        baseline_origin_as=65007,
+        baseline_as_path="65003 65001"
+    )
+
+    await controller.state_store.initialize()
+    await controller.state_store.clear_all()
+    await controller.policy_engine.apply_policy({}, settle_delay_sec=0.2)
+
+    # Start controller task
+    ctrl_task = asyncio.create_task(controller.run())
+    await asyncio.sleep(2.0)  # Settle startup
+
+    mttd = None
+    mttm = None
     quarantined = False
-    mttd = 0.0
-    mttm = 0.0
-    
-    for tick in range(1, 8):
-        time.sleep(0.8)
-        controller.step()
-        
-        # Check detection timestamp
-        for r in controller.collector.buffer.get_history("192.0.2.0/24"):
-            if r.get("origin_as") == 65004 or "65004" in r.get("as_path", ""):
-                if not detected:
-                    mttd = round(time.time() - start_attack, 2)
-                    detected = True
-        
-        # Check mitigation (LocalPref 0 + no-export applied)
-        current_lp = controller.active_policies.get("192.0.2.0/24", {}).get("loc_pref", 100)
-        current_comm = controller.active_policies.get("192.0.2.0/24", {}).get("community")
-        
-        if current_lp == 0 and current_comm == "no-export":
-            if not quarantined:
-                mttm = round(time.time() - start_attack, 2)
-                quarantined = True
-                print(f"\n[+] ANOMALY DETECTED IN {mttd:.2f}s | QUARANTINED (MTTM) IN {mttm:.2f}s!")
+    rolled_back = False
+
+    try:
+        # Phase 1: Steady-state baseline
+        print("\n--- PHASE 1: Baseline Steady State ---")
+        await asyncio.sleep(2.0)
+        initial_lp = controller.active_policies.get("192.0.2.0/24", {}).get("loc_pref", 100)
+        print(f"[+] Initial LocalPref for 192.0.2.0/24: {initial_lp}")
+
+        # Phase 2: Inject Sub-Prefix Hijack
+        print("\n--- PHASE 2: Injecting Rogue Sub-Prefix Hijack on AS65010 (192.0.2.0/25) ---")
+        t0 = time.time()
+        await injector.inject_subprefix_hijack(subprefix="192.0.2.0/25", rogue_origin_as=65010)
+
+        # Monitor detection and mitigation
+        for _ in range(30):
+            await asyncio.sleep(0.5)
+            # Check detection
+            det = await controller.state_store.get_latest_detection("192.0.2.0/25", min_timestamp=t0)
+            if det and mttd is None:
+                mttd = round(det["detected_at"] - t0, 3)
+                print(f"[+] Attack Detected in {mttd:.3f}s (Class ID: {det['class_id']}, Trust: {det['trust_score']:.2f})")
+
+            # Check mitigation
+            active_pol = controller.active_policies.get("192.0.2.0/25", {})
+            cur_lp = active_pol.get("loc_pref", 100)
+            cur_comm = active_pol.get("community")
+            if cur_lp == 0 and cur_comm == "no-export":
+                if mttm is None:
+                    mttm = round(time.time() - t0, 3)
+                    quarantined = True
+                    print(f"[+] Anomaly Quarantined (MTTM) in {mttm:.3f}s! Policy: LP={cur_lp}, Community={cur_comm}")
+                    break
+
+        # Phase 3: Verify downstream isolation
+        print("\n--- PHASE 3: Verifying RIB Quarantine & Outbound Isolation ---")
+        code, out, _ = run_vtysh("as65003", ["show bgp ipv4 unicast 192.0.2.0/25"])
+        print(f"AS65003 BGP entry for 192.0.2.0/25:\n{out.strip()}")
+
+        # Phase 4: Clean attack and verify recovery
+        print("\n--- PHASE 4: Restoring Clean Baseline (Removing Rogue Announcement) ---")
+        t_restore = time.time()
+        await injector.cleanup_all_attacks()
+
+        # Wait for rollback
+        for _ in range(25):
+            await asyncio.sleep(1.0)
+            active_pol = controller.active_policies.get("192.0.2.0/25", {})
+            if not active_pol or active_pol.get("loc_pref", 100) == 100:
+                rolled_back = True
+                recovery_time = round(time.time() - t_restore, 3)
+                print(f"[+] Autonomous Rollback Complete! Quarantine cleared in {recovery_time:.3f}s.")
                 break
 
-    # Phase 3: Verify Downstream Isolation (AS 65004 does NOT see the quarantined route)
-    print("\n--- PHASE 3: Verifying Outbound Isolation via 'no-export' ---")
-    code, out, _ = run_vtysh("as65004", ["show ip route 192.0.2.0/24"])
-    print(f"AS65004 Routing table for 192.0.2.0/24:\n{out.strip() if out.strip() else '%% Network not in table (Blocked by no-export)'}")
-    
-    # Phase 4: Restore Legitimate Route on as65001
-    print("\n--- PHASE 4: Restoring Legitimate Origin AS 65001 ---")
-    start_restore = time.time()
-    run_vtysh("as65001", [
-        "configure terminal",
-        "route-map RM_OUT permit 10",
-        " no set as-path prepend",
-        "exit",
-        "exit",
-        "clear ip bgp 10.0.12.3 soft out"
-    ])
-    
-    # Run controller steps until Rollback occurs (M=3 Normal ticks)
-    rolled_back = False
-    for tick in range(1, 10):
-        time.sleep(1.0)
-        controller.step()
-        current_lp = controller.active_policies.get("192.0.2.0/24", {}).get("loc_pref", 100)
-        if current_lp == 100 and quarantined:
-            rolled_back = True
-            recovery_time = time.time() - start_restore
-            print(f"\n[+] AUTONOMOUS ROLLBACK COMPLETE! LocalPref restored to 100 in {recovery_time:.2f}s.")
-            break
+    finally:
+        controller._shutdown.set()
+        await ctrl_task
+        await injector.cleanup_all_attacks()
 
-    print("\n" + "=" * 70)
-    print(" LIVE VALIDATION SUMMARY")
-    print("=" * 70)
-    print(f"1. Anomaly Quarantined (LP 0 + no-export): {'PASS' if quarantined else 'FAIL'}")
-    print(f"2. Detection Latency (MTTD):               {mttd:.2f}s")
-    print(f"3. Mitigation Latency (MTTM):              {mttm:.2f}s (vs 9.04s native BGP baseline)")
-    print(f"4. Outbound Re-advertisement Blocked:      PASS (Enforced by RFC 1997 no-export)")
-    print(f"5. Autonomous Rollback to LP 100:          {'PASS' if rolled_back else 'FAIL'}")
-    print("=" * 70)
+    print("\n" + "=" * 75)
+    print(" 10-AS LIVE LIFECYCLE SUMMARY")
+    print("=" * 75)
+    print(f"1. Detection Latency (MTTD):               {f'{mttd:.3f}s' if mttd else 'FAILED'}")
+    print(f"2. Mitigation Latency (MTTM):              {f'{mttm:.3f}s' if mttm else 'FAILED'}")
+    print(f"3. Dual Quarantine (LP 0 + no-export):     {'PASS' if quarantined else 'FAIL'}")
+    print(f"4. Autonomous Rollback to LP 100:          {'PASS' if rolled_back else 'FAIL'}")
+    print("=" * 75)
+    return quarantined and (mttd is not None)
+
 
 if __name__ == "__main__":
-    test_full_lifecycle()
+    configure_asyncio_policy()
+    ok = asyncio.run(test_full_lifecycle_async())
+    sys.exit(0 if ok else 1)

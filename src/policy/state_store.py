@@ -139,17 +139,17 @@ class ControllerStateStore:
             )
             return cursor.rowcount > 0
 
-    def _get_latest_detection_sync(self, prefix: str) -> Optional[Dict[str, Any]]:
+    def _get_latest_detection_sync(self, prefix: str, min_timestamp: float = 0.0) -> Optional[Dict[str, Any]]:
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
                 SELECT id, prefix, detected_at, class_id, trust_score, mitigated_at
                 FROM   detection_events
-                WHERE  prefix = ?
+                WHERE  prefix = ? AND detected_at >= ?
                 ORDER  BY detected_at DESC
                 LIMIT  1
                 """,
-                (prefix,)
+                (prefix, min_timestamp)
             )
             row = cursor.fetchone()
             if row is None:
@@ -166,6 +166,15 @@ class ControllerStateStore:
     # ------------------------------------------------------------------
     # Public async API
     # ------------------------------------------------------------------
+
+    def _clear_all_sync(self):
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM active_policies")
+            conn.execute("DELETE FROM detection_events")
+
+    async def clear_all(self):
+        async with self._db_lock:
+            await asyncio.to_thread(self._clear_all_sync)
 
     async def save_policy(self, prefix: str, loc_pref: int, community: Optional[str],
                           classification_id: int, trust_score: float, verified: bool = False):
@@ -189,5 +198,6 @@ class ControllerStateStore:
         async with self._db_lock:
             return await asyncio.to_thread(self._record_mitigation_sync, prefix)
 
-    async def get_latest_detection(self, prefix: str) -> Optional[Dict[str, Any]]:
-        return await asyncio.to_thread(self._get_latest_detection_sync, prefix)
+    async def get_latest_detection(self, prefix: str, min_timestamp: float = 0.0) -> Optional[Dict[str, Any]]:
+        async with self._db_lock:
+            return await asyncio.to_thread(self._get_latest_detection_sync, prefix, min_timestamp)

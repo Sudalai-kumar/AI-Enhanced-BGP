@@ -148,7 +148,7 @@ async def run_data_collection(
     ]
 
     total_samples = 0
-    with open(output_path, "a" if os.path.exists(output_path) else "w", encoding="utf-8") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         for scen_id, scen_name, label, target_pfx, inject_fn in scenarios:
             logger.info(f"\n>>> Scenario: {scen_id} - {scen_name} (Target Label: {label})")
 

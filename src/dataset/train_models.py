@@ -409,25 +409,30 @@ def train_from_real_data(jsonl_path: str = None):
     git_commit = _git_commit()
     timestamp = datetime.datetime.utcnow().isoformat() + "Z"
 
+    full_dataset_sha256 = _sha256_file(jsonl_path)
+
     metadata = {
         "model_version": "bgp-v3.0-empirical-10as",
         "training_source": "empirical_frr_testbed_10as",
         "dataset_file": os.path.basename(jsonl_path),
+        "dataset_full_sha256": full_dataset_sha256,
         "training_timestamp": timestamp,
         "git_commit": git_commit,
-        "evaluation_method": "temporal_80_20_holdout",
+        "evaluation_method": split_method,
         "evaluation_method_note": (
-            "Chronological 80/20 train/test split on live empirical telemetry records "
-            "collected from dual monitoring routers (AS65001 Core and AS65003 Edge)."
+            "Multi-vantage empirical telemetry collected from live 10-AS testbed "
+            "(AS65001 Core Defender & AS65003 Edge Defender) evaluated via holdout split."
         ),
         "feature_count": len(FEATURE_NAMES),
         "feature_names": FEATURE_NAMES,
         "sample_counts": {
+            "total": n_samples,
             "train": len(X_train),
             "test": len(X_test),
             "false_positive_challenge": len(X_fp)
         },
         "dataset_sha256": {
+            "full": full_dataset_sha256,
             "train": train_dataset_sha256,
             "test": test_dataset_sha256
         },
@@ -455,17 +460,20 @@ def train_from_real_data(jsonl_path: str = None):
         json.dump(metadata, f, indent=2)
 
     eval_results = {
-        "evaluation_method": "temporal_80_20_holdout",
+        "evaluation_method": split_method,
         "training_source": "empirical_frr_testbed_10as",
         "dataset_file": os.path.basename(jsonl_path),
+        "dataset_full_sha256": full_dataset_sha256,
         "training_timestamp": timestamp,
         "git_commit": git_commit,
         "dataset_summary": {
+            "total_samples": n_samples,
             "train_samples": len(X_train),
             "test_samples": len(X_test),
             "false_positive_challenge_samples": len(X_fp),
             "features": FEATURE_NAMES,
             "dataset_sha256": {
+                "full": full_dataset_sha256,
                 "train": train_dataset_sha256,
                 "test": test_dataset_sha256
             }

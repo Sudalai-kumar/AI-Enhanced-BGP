@@ -58,11 +58,12 @@ def _docker_version() -> str:
     return out
 
 
-def _frr_image_digest(image: str = "frrouting/frr:10.2.1") -> str:
+def _frr_image_digest(image: str = "quay.io/frrouting/frr:10.2.1") -> str:
     """Returns the RepoDigest of the FRR image if available locally."""
-    out = _run(["docker", "inspect", "--format", "{{index .RepoDigests 0}}", image])
-    if out and out != "unknown" and "sha256" in out:
-        return out
+    for img in [image, "frrouting/frr:10.2.1"]:
+        out = _run(["docker", "inspect", "--format", "{{index .RepoDigests 0}}", img])
+        if out and out != "unknown" and "sha256" in out:
+            return out
     return "not-pulled-locally"
 
 
@@ -73,10 +74,11 @@ def generate_manifest() -> dict:
         "python_version": sys.version,
         "platform": platform.platform(),
         "docker_version": _docker_version(),
-        "frr_image": "frrouting/frr:10.2.1",
+        "frr_image": "quay.io/frrouting/frr:10.2.1",
         "frr_image_digest": _frr_image_digest(),
         "requirements_txt_sha256": _sha256_file(os.path.join(_REPO_ROOT, "requirements.txt")),
         "requirements_lock_sha256": _sha256_file(os.path.join(_REPO_ROOT, "requirements.lock")),
+        "dataset_real_training_sha256": _sha256_file(os.path.join(_DATA_DIR, "raw", "bgp_real_training.jsonl")),
         "model_rf_sha256": _sha256_file(os.path.join(_MODELS_DIR, "random_forest.joblib")),
         "model_lr_sha256": _sha256_file(os.path.join(_MODELS_DIR, "logistic_regression.joblib")),
         "model_scaler_sha256": _sha256_file(os.path.join(_MODELS_DIR, "scaler.joblib")),

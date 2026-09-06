@@ -174,7 +174,8 @@ class AutonomousBGPController:
                 batch = {
                     "snapshot_id": snapshot["snapshot_id"],
                     "collected_at": snapshot["collected_at"],
-                    "decisions": decisions
+                    "decisions": decisions,
+                    "transitions": snapshot.get("transitions", [])
                 }
                 await self._decision_q.put(batch)
                 self._snapshot_q.task_done()
@@ -281,6 +282,15 @@ class AutonomousBGPController:
                                 policy_updates_pending = True
                             else:
                                 logger.info(f"[{prefix}] Staged in shadow queue: {shadow_status}")
+                # Process route withdrawals (e.g. when attack prefix is withdrawn / stopped)
+                for trans in batch.get("transitions", []):
+                    if trans.get("type") == "ROUTE_WITHDRAWAL":
+                        w_pfx = trans.get("prefix")
+                        if w_pfx in new_active_state:
+                            logger.info(f"[{w_pfx}] Route withdrawn from RIB: clearing active policy override.")
+                            new_active_state.pop(w_pfx, None)
+                            self.rollback_manager.register_policy_modification(w_pfx, 100, None)
+                            policy_updates_pending = True
 
                 # Atomic policy commit
                 if policy_updates_pending:

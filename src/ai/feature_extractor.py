@@ -188,9 +188,16 @@ class BGPFeatureExtractor:
         as_path_tokens = as_path.split()
         as_path_len = float(len(as_path_tokens))
 
-        # 2. AS Path edit distance
+        # 2. AS Path edit distance (accounts for direct eBGP vs upstream vantage points)
         baseline_tokens = base_path.split()
-        as_path_edit_distance = float(self.levenshtein_distance(as_path_tokens, baseline_tokens))
+        if as_path_tokens == baseline_tokens:
+            as_path_edit_distance = 0.0
+        elif len(as_path_tokens) > 0 and len(baseline_tokens) > 0 and as_path_tokens[-1] == baseline_tokens[-1] and (
+            as_path_tokens == baseline_tokens[-len(as_path_tokens):] or baseline_tokens == as_path_tokens[-len(baseline_tokens):]
+        ):
+            as_path_edit_distance = 0.0
+        else:
+            as_path_edit_distance = float(self.levenshtein_distance(as_path_tokens, baseline_tokens))
 
         # 3. Origin AS change
         origin_as = current_route.get("origin_as")

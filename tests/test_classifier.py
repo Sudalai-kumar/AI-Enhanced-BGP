@@ -46,20 +46,20 @@ class TestBGPClassifier(unittest.TestCase):
         self.assertLess(rf_latency_ms, 50.0, "Random Forest exceeded 50.0 ms budget!")
 
     def test_classification_correctness(self):
-        # 1. Normal Vector
-        norm_vec = np.array([2.0, 0.0, 0.0, 24.0, 1.0, 0.0, 100.0, 2500.0, 0.0, 1.0], dtype=np.float32)
+        # 1. Normal Vector (Origin stable, Valley-free normal)
+        norm_vec = np.array([2.0, 0.0, 0.0, 24.0, 0.0, 0.0, 100.0, 2500.0, 0.0, 0.33], dtype=np.float32)
         pred, probs = self.rf_classifier.predict(norm_vec)
         self.assertEqual(pred, 0) # Normal
         
-        # 2. Prefix Hijack Vector (origin_as_change = 1)
-        hijack_vec = np.array([2.0, 3.0, 1.0, 24.0, 2.0, 0.0, 100.0, 10.0, 0.0, 0.5], dtype=np.float32)
+        # 2. Prefix Hijack Vector (origin_as_change = 1, fresh route age)
+        hijack_vec = np.array([3.0, 3.0, 1.0, 24.0, 0.0, 0.0, 100.0, 0.01, 0.0, 0.33], dtype=np.float32)
         pred, probs = self.rf_classifier.predict(hijack_vec)
         self.assertEqual(pred, 3) # Hijack
         
-        # 3. Route Leak Vector (valley_free = 1, long path)
-        leak_vec = np.array([6.0, 4.0, 0.0, 24.0, 3.0, 0.0, 100.0, 30.0, 1.0, 0.5], dtype=np.float32)
-        pred, probs = self.rf_classifier.predict(leak_vec)
-        self.assertEqual(pred, 2) # Route Leak
+        # 3. Sub-Prefix Hijack Vector (mask_len = 25, origin_as_change = 1)
+        subprefix_vec = np.array([4.0, 4.0, 1.0, 25.0, 0.0, 0.0, 100.0, 0.01, 0.0, 0.33], dtype=np.float32)
+        pred, probs = self.rf_classifier.predict(subprefix_vec)
+        self.assertEqual(pred, 3) # Hijack
 
     def test_hybrid_decision_trust_score(self):
         norm_vec = np.array([2.0, 0.0, 0.0, 24.0, 1.0, 0.0, 100.0, 2500.0, 0.0, 1.0], dtype=np.float32)

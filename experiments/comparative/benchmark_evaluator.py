@@ -71,7 +71,14 @@ class ComparativeEvaluator:
         y_pred_ai_stream = []
         y_pred_heur_stream = []
 
-        controller = AutonomousBGPController(router="as65003", peer_ip="10.0.23.2", poll_interval=0.4, shadow_sec=2.0)
+        controller = AutonomousBGPController(
+            router="as65003",
+            peer_ip="10.0.13.2",
+            poll_interval=0.4,
+            shadow_sec=1.5,
+            baseline_origin_as=65007,
+            baseline_as_path="65003 65001"
+        )
         await controller._initialize()
         observed_final_action = "None (Propagated)"
 
@@ -114,31 +121,28 @@ class ComparativeEvaluator:
                     pred_c, probs = controller.classifier.predict(feats)
                     dec = controller.decision_engine.evaluate(injected_pfx, current_r, feats, probs)
 
-                    if dec["classification_id"] != 0 and not detected:
-                        it_mttd = round(now_elapsed, 2)
-                        detected = True
-
-                    # Record classification stream
-                    y_true_stream.append(expected_class)
-                    y_pred_ai_stream.append(dec["classification_id"])
-                    
-                    # Heuristic Prediction on identical feature vector
-                    h_res = self.heuristic.evaluate(feats)
-                    y_pred_heur_stream.append(h_res["class_id"])
-
-                # Check verified policy modification in FRR
-                active_pol = controller.active_policies.get(injected_pfx, {})
-                cur_lp = active_pol.get("loc_pref", 100)
-                cur_comm = active_pol.get("community")
-                
-                if cur_lp != 100 and not mitigated:
-                    it_mttm = round(now_elapsed, 2)
-                    mitigated = True
-                    if cur_lp == 0 and cur_comm:
-                        observed_final_action = f"LocalPref 0 + {cur_comm}"
-                    else:
-                        observed_final_action = f"LocalPref {cur_lp}"
-                    break
+                    if dec["classification_id"] != 0:
+                        if not detected:
+                            it_mttd = round(now_elapsed, 2)
+                            detected = True
+                        
+                        target_lp, target_comm, action_desc = controller.policy_engine.map_trust_to_policy(
+                            trust_score=dec["trust_score"],
+                            class_id=dec["classification_id"],
+                            current_loc_pref=controller.active_policies.get(injected_pfx, {}).get("loc_pref", 100)
+                        )
+                        if target_lp != 100 or target_comm:
+                            v_ok = await controller.policy_engine.apply_policy(
+                                {injected_pfx: {"loc_pref": target_lp, "community": target_comm}},
+                                settle_delay_sec=0.2
+                            )
+                            if v_ok:
+                                controller.active_policies[injected_pfx] = {"loc_pref": target_lp, "community": target_comm}
+                                if not mitigated:
+                                    it_mttm = round(time.perf_counter() - t0, 2)
+                                    mitigated = True
+                                    observed_final_action = f"LocalPref {target_lp}" + (f" + {target_comm}" if target_comm else "")
+                                    break
 
             if it_mttd is not None:
                 mttd_trials.append(it_mttd)

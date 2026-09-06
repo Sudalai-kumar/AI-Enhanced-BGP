@@ -16,7 +16,7 @@ from src.utils.async_utils import configure_asyncio_policy
 def main():
     configure_asyncio_policy()
     parser = argparse.ArgumentParser(description="Week 8 Attack Evaluation Runner")
-    parser.add_argument("--iterations", type=int, default=3, help="Benchmark iterations")
+    parser.add_argument("--iterations", type=int, default=5, help="Benchmark iterations (default: 5)")
     args = parser.parse_args()
 
     evaluator = ComparativeEvaluator()

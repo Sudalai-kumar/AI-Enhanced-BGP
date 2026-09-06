@@ -1,29 +1,64 @@
-# AI-Enhanced BGP Autonomous Control Plane
+# AI-Enhanced BGP Autonomous Control Plane (v3.0)
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Docker](https://img.shields.io/badge/docker-ready-green.svg)](https://www.docker.com/)
 [![FRRouting](https://img.shields.io/badge/FRRouting-10.2.1-orange.svg)](https://frrouting.org/)
+[![Topology](https://img.shields.io/badge/Topology-10--AS%20Multi--Tier-purple.svg)](topologies/docker-compose.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An intelligent, autonomous, and standards-compliant BGP control-plane enhancement that detects and mitigates routing anomalies (prefix hijacks, sub-prefix deaggregations, route leaks, and flapping bursts) in real time using Machine Learning and dynamic BGP Local Preference policies with Shadow Validation, Deep RIB Verification, and Multi-Criteria Autonomous Rollback.
+An intelligent, autonomous, and RFC-compliant BGP control-plane enhancement that detects and mitigates routing anomalies (prefix hijacks, sub-prefix deaggregations, route leaks, and flapping bursts) in real time using Machine Learning and dynamic BGP Local Preference policies with Shadow Validation, Deep RIB Verification, Multi-Criteria Autonomous Rollback, and Decentralized Multi-Tier Defense.
 
 ---
 
 ## 📌 Architecture & System Overview
 
 ```
-+---------------------------------------------------------------------------------------------------+
-|                                 ASYNCHRONOUS AUTONOMOUS CONTROL PLANE                              |
-+---------------------------------------------------------------------------------------------------+
++===================================================================================================+
+|                    10-AS MULTI-TIER BGP TOPOLOGY & DUAL AUTONOMOUS DEFENSE                        |
++===================================================================================================+
 |                                                                                                   |
-|  [ FRRouting Multi-AS Testbed ] (AS 65001 -> AS 65002 Transit -> AS 65003 Monitor <- AS 65004)   |
+|               [ AS65005 ]                      [ AS65006 Transit ] <--- [ AS65010 Rogue AS ]      |
+|                    ▲                                    ▲                                         |
+|                    │ (Provider-Customer)                │ (Provider-Customer)                     |
+|                    ▼                                    ▼                                         |
+|         +------------------------------------------------------+                                  |
+|         |           AS65002 Tier-1 Transit Backbone            |                                  |
+|         +------------------------------------------------------+                                  |
+|                                    ▲                                                              |
+|                                    │ (Peer-to-Peer Transit)                                       |
+|                                    ▼                                                              |
+|         +------------------------------------------------------+                                  |
+|         |  AS65001 Tier-1 Backbone [CORE DEFENDER CONTROLLER]  |                                  |
+|         +------------------------------------------------------+                                  |
+|                    ▲                                    ▲                                         |
+|                    │                                    │ (Provider-Customer)                     |
+|                    ▼                                    ▼                                         |
+|         +--------------------+               +--------------------+                               |
+|         |  AS65003 Regional  |               |  AS65004 Regional  |                               |
+|         |  [EDGE DEFENDER]   |               +--------------------+                               |
+|         +--------------------+                          ▲                                         |
+|              ▲          ▲                               │ (Provider-Customer)                     |
+|              │          │                               ▼                                         |
+|              ▼          ▼                      +--------------------+                             |
+|         +---------+ +---------+                |  AS65009 Stub Cust |                             |
+|         | AS65007 | | AS65008 |                +--------------------+                             |
+|         | Origin  | | Stub    |                                                                   |
+|         +---------+ +---------+                                                                   |
+|                                                                                                   |
++===================================================================================================+
+|                                  AUTONOMOUS CONTROL PLANE PIPELINE                                 |
++===================================================================================================+
+|                                                                                                   |
+|  [ Telemetry Coroutine ] ──► Async vtysh collector (show bgp summary & ipv4 unicast)             |
 |                 │                                                                                 |
 |                 ▼                                                                                 |
-|  [ Telemetry Coroutine ] (vtysh collector + atomic snapshot + buffer + storage)                  |
-|                 │ (async queue)                                                                   |
-|                 ▼                                                                                 |
-|  [ 10-Feature Behavioral Extractor + Calibrated ML Model & Trust Engine Coroutine ]               |
-|                 │ (async queue with snapshot IDs & staleness rejection)                           |
+|  [ 10-Feature Behavioral Extractor + Calibrated ML Model & Hybrid Trust Engine ]                  |
+|     ├── 1. AS-Path Hop Count            6. Rolling 5-Min Flap Count                               |
+|     ├── 2. AS-Path Edit Distance        7. Current Local Preference                               |
+|     ├── 3. Origin AS Change Flag        8. True Route Maturity (Age)                              |
+|     ├── 4. Prefix CIDR Mask Length      9. Gao-Rexford Valley-Free Violation                      |
+|     └── 5. Announcements / Minute      10. Peer Neighbor Diversity Ratio                          |
+|                 │                                                                                 |
 |                 ▼                                                                                 |
 |  [ Dedicated Policy Actor ] (Shadow Validator & Anti-Thrashing Guard + Atomic Apply)              |
 |     ├── Normal (Trust ≥ 0.85)     ──► LocalPref 100                                              |
@@ -31,56 +66,44 @@ An intelligent, autonomous, and standards-compliant BGP control-plane enhancemen
 |     ├── Route Leak (0.25 - 0.55)  ──► LocalPref 50 (Hard Deprioritization)                       |
 |     └── Prefix Hijack (< 0.25)    ──► LocalPref 0 + BGP Community 'no-export' (Dual Quarantine)  |
 |                                                                                                   |
-|  [ Heartbeat Coroutine ] ──► Non-blocking peer reachability using cached summary                  |
-|  [ Metrics Coroutine ]   ──► Independent CPU/RAM utilization telemetry                            |
+|  [ Deep Two-Layer RIB Verification ] ──► Layer 1 (Config) + Layer 2 (Active FIB/RIB Best-Path)    |
+|  [ Multi-Criteria Rollback Engine ]  ──► Autonomous Reversion to LP 100 upon Sustained Health     |
 |                                                                                                   |
-+---------------------------------------------------------------------------------------------------+
++===================================================================================================+
 ```
-
-> **Architecture Note**: The control plane operates as an **asynchronous event-driven pipeline** orchestrated via Python `asyncio`. Five concurrent cooperative coroutines handle telemetry ingestion, feature extraction & ML inference, snapshot-batched atomic policy enforcement, cached peer heartbeat, and system metrics. Inter-task queues with snapshot generation IDs prevent race conditions and stale decisions while maintaining atomic all-or-nothing policy application.
 
 ---
 
 ## 🎯 Key Features & Research Highlights
 
-1. **Standards-Compliant BGP Control Plane**: Works seamlessly on top of RFC-standard BGP (FRRouting 10.2.1) without modifying protocol wire formats.
-2. **Dual-Action Quarantine & Deprioritization**:
-   - **Prefix Hijacks**: **`LocalPref 0`** + BGP community **`no-export`** (RFC 1997).
+1. **10-AS Multi-Tier Testbed**: Emulates a complete carrier-scale hierarchy featuring Tier-1 Transit Backbones (AS65001, AS65002), Regional Hubs (AS65003, AS65004, AS65005, AS65006), Multi-Homed Customer Stubs (AS65007, AS65008, AS65009), and a Rogue Adversary (AS65010).
+2. **Decentralized Dual Control Planes**:
+   - **Core Defender (AS65001)**: First line of defense stopping cross-backbone transit leaks and wide-area route contamination.
+   - **Edge Defender (AS65003)**: Second line of defense ensuring customer stub traffic isolation and protecting enterprise origins.
+3. **Standards-Compliant Dual-Action Quarantine**:
+   - **Prefix Hijacks**: **`LocalPref 0`** + RFC 1997 **`no-export`** community.
    - **Route Leaks**: **`LocalPref 50`** (Hard Deprioritization) ensuring alternative valid transit paths are preferred.
-   - **Flapping / Churn**: **`LocalPref 80`** (Soft Deprioritization) dampening churn without dropping traffic.
-3. **Shadow Validation & Anti-Thrashing Safeguards**: 
-   - 4.0-second transient staging buffer with strict streak-breaking logic to discard false alarms.
-   - Asymmetric hysteresis band ($\Delta = 0.05$) and 10.0s minimum dwell time to eliminate policy thrashing near threshold boundaries.
-4. **Deep Two-Layer Verification**:
-   - **Layer 1 (Config)**: Confirms route-map rules and prefix-lists are installed in FRR via `show route-map`.
-   - **Layer 2 (RIB Behavior)**: Queries `show bgp ipv4 unicast <prefix> json` to verify the actual best-path entry won selection with the expected `locPrf` and `community`.
-5. **Multi-Criteria Autonomous Rollback**: Reverts `LocalPref` to `100` only when ML classification is Normal, AS paths are stable, recent flaps are quiescent, and upstream reachability is verified.
-6. **Robust ML Evaluation (Cross-Seed Holdout & Overlapping Distributions)**:
-   - Models trained with realistic overlapping feature distributions (preventing artificial separability).
-   - Evaluated on an independent cross-seed test set (`random_state=99`) and a dedicated false-positive challenge set.
+   - **Flapping / Churn**: **`LocalPref 80`** (Soft Deprioritization) dampening churn without packet loss.
+4. **Empirical Telemetry Training Pipeline**: Real-time training from 10-AS live testbed measurements (`bgp_real_training.jsonl`) with chronological and trial-based evaluation splits.
+5. **Deep Two-Layer Verification**:
+   - **Layer 1 (Config)**: Confirms route-map and prefix-list syntax applied to FRR via `show route-map`.
+   - **Layer 2 (RIB Behavior)**: Verifies that the target prefix in `show bgp ipv4 unicast <prefix> json` actually won best-path selection with the expected `locPrf` and `community`.
+6. **Shadow Validation & Anti-Thrashing Safeguards**: 
+   - Transient staging buffer with streak-breaking logic to discard transient flapping false alarms.
+   - Asymmetric hysteresis band ($\Delta = 0.05$) and minimum dwell time to eliminate policy oscillation near decision boundaries.
 
 ---
 
-## 📊 4-Way Comparative Evaluation Matrix (Benchmark Framework)
+## 📊 4-Way Comparative Evaluation Matrix
 
-### Evidence-Level Classifications
-To ensure scientific rigor and transparent comparability, every baseline configuration is explicitly tagged with its evidence level:
-- **`EMPIRICAL`**: Live autonomous measurement on the four-AS FRR container testbed.
-- **`EMULATED`**: RFC 6811 ingestion model (not a live deployed RPKI cache/validator).
-- **`MODELLED`**: Static rule-based baseline with literature-derived thresholds.
-- **`ANALYTICAL`**: Derived directly from the BGP protocol specification (no anomaly detection mechanism exists).
-
-### Historical Incident Replay Disclaimer
-Scenarios **S4**, **S5**, and **S6** are **topology-local behavioral replays**. They recreate the *behavioral signatures* (origin hijack pattern, valley-free route leak pattern) of the named historical incidents within the four-AS FRR laboratory topology. They are **not** direct reproductions of the actual global Internet-scale events.
-
-| Scenario | Type | Standard BGP (RFC) `[ANALYTICAL]` | BGP + RPKI ROV (RFC 6811) `[EMULATED]` | Behavioural Heuristics `[MODELLED]` | Proposed AI Control Plane `[EMPIRICAL]` |
+| Scenario | Attack Type | Standard BGP (RFC) `[ANALYTICAL]` | BGP + RPKI ROV (RFC 6811) `[EMULATED]` | Behavioural Heuristics `[MODELLED]` | Proposed AI Control Plane `[EMPIRICAL]` |
 |---|---|---|---|---|---|
-| **S1: Direct Prefix Hijack** | Synthetic | ❌ Propagated (0% PDR) | ✅ < 0.10s (100% PDR) | ✅ 0.50s (92% PDR) | ✅ **1.34s Quarantine (LP 0 + no-export)** |
-| **S2: Sub-Prefix Hijack (/25)** | Synthetic | ❌ Propagated (0% PDR) | ❌ Missed (0% PDR) | ✅ 0.50s (92% PDR) | ✅ **4.92s Quarantine (LP 0 + no-export)** |
-| **S3: Route Flapping Burst** | Synthetic | ❌ Churn (50% PDR) | ❌ Missed (0% PDR) | ✅ 0.50s (92% PDR) | ✅ **15.42s Deprioritize (LP 80)** |
-| **S4: YouTube 2008 Hijack** | Behavioral Replay | ❌ Propagated (0% PDR) | ✅ < 0.10s (100% PDR) | ✅ 0.50s (92% PDR) | ✅ **4.93s Quarantine (LP 0 + no-export)** |
-| **S5: Google 2017 Route Leak** | Behavioral Replay | ❌ Propagated (0% PDR) | ⚠️ *N/A (Out of Scope)* | ✅ 0.50s (92% PDR) | ✅ **1.54s Deprioritize (LP 50)** |
-| **S6: Cloudflare 2019 Route Leak** | Behavioral Replay | ❌ Propagated (0% PDR) | ⚠️ *N/A (Out of Scope)* | ✅ 0.50s (92% PDR) | ✅ **1.49s Deprioritize (LP 50)** |
+| **S1: Direct Prefix Hijack** | Origin Hijack | ❌ Propagated (0% PDR) | ✅ < 0.10s (100% PDR) | ✅ 0.50s (92% PDR) | ✅ **Quarantine (LP 0 + no-export)** |
+| **S2: Sub-Prefix Hijack (/25)** | Deaggregation | ❌ Propagated (0% PDR) | ❌ Missed (0% PDR) | ✅ 0.50s (92% PDR) | ✅ **Quarantine (LP 0 + no-export)** |
+| **S3: Route Flapping Burst** | Churn Flood | ❌ Churn (50% PDR) | ❌ Missed (0% PDR) | ✅ 0.50s (92% PDR) | ✅ **Deprioritize (LP 80)** |
+| **S4: YouTube 2008 Hijack** | Historical Replay | ❌ Propagated (0% PDR) | ✅ < 0.10s (100% PDR) | ✅ 0.50s (92% PDR) | ✅ **Quarantine (LP 0 + no-export)** |
+| **S5: Google 2017 Route Leak** | Route Leak | ❌ Propagated (0% PDR) | ⚠️ *N/A (Out of Scope)* | ✅ 0.50s (92% PDR) | ✅ **Deprioritize (LP 50)** |
+| **S6: Cloudflare 2019 Route Leak** | Route Leak | ❌ Propagated (0% PDR) | ⚠️ *N/A (Out of Scope)* | ✅ 0.50s (92% PDR) | ✅ **Deprioritize (LP 50)** |
 
 ---
 
@@ -99,70 +122,59 @@ cd "NDC project"
 
 ### 3. Install Python Dependencies
 ```bash
-# Using pinned lockfile for reproducibility:
 python -m pip install -r requirements.lock
-
-# Or install from specifier:
-python -m pip install -r requirements.txt
 ```
 
-### 4. Deploy the 4-AS Docker Testbed
+### 4. Deploy the 10-AS Docker Testbed
 ```bash
 python scripts/deploy_docker.py up
 ```
 
-Verify that all 4 FRR containers (`as65001`, `as65002`, `as65003`, `as65004`) are healthy:
+Verify that all 10 FRR nodes (`as65001` through `as65010`) and 18 eBGP sessions are converged:
 ```bash
 python scripts/verify_convergence.py
 ```
 
 ---
 
-## 🛠️ How to Use
+## 🛠️ Operational Workflows
 
-### 1. Run the Autonomous BGP Controller
-Launch the closed-loop autonomous daemon on monitor node `as65003`:
+### 1. Run Dual Autonomous Controllers (Core + Edge Defense)
+Launch concurrent autonomous control planes for AS65001 (Core Defender) and AS65003 (Edge Defender):
 ```bash
-python scripts/run_autonomous_controller.py --router as65003 --interval 1.0 --heartbeat 10.0 --metrics-interval 5.0
+python scripts/run_dual_controller.py --interval 1.0 --model random_forest
 ```
 
-### 2. Retrain ML Models (Cross-Seed Holdout & Overlapping Distributions)
+### 2. Collect Empirical Telemetry from the 10-AS Testbed
+Execute multi-vantage empirical telemetry collection:
 ```bash
-python scripts/train_ai_models.py
+python scripts/collect_training_data.py --trials 5 --duration 5.0
 ```
 
-### 3. Run Live MTTD / MTTM Benchmark
+### 3. Train Calibrated AI Models on Empirical 10-AS Data
+Train and evaluate Random Forest and Logistic Regression on empirical telemetry:
 ```bash
-# Live measurement across scenarios:
+python scripts/train_ai_models.py --real-data
+```
+
+### 4. Run Live MTTD / MTTM / PDR Benchmarks
+Execute the multi-trial live benchmark harness:
+```bash
 python scripts/run_live_benchmark.py --scenarios S1,S2,S3,S4,S5,S6 --trials 5
-
-# Or offline dry-run with documented model values:
-python scripts/run_live_benchmark.py --dry-run
 ```
 
-### 4. Measure End-to-End Data-Plane PDR (Traffic Probing)
+### 5. Validate End-to-End Closed-Loop Lifecycle
+Run the automated Anomaly $\to$ Detection $\to$ Quarantine $\to$ Rollback verification:
 ```bash
-python scripts/measure_pdr.py --scenario S1
+python scripts/verify_live_lifecycle.py
 ```
 
-### 5. Run Failure Injection & Chaos Tests
-```bash
-# Toggle link:
-python scripts/inject_failure.py link --node as65001 --interface eth0 --state down
-
-# Simulate route flapping:
-python scripts/inject_failure.py flap --node as65001 --interface eth0 --cycles 3
-
-# Test controller crash recovery:
-python scripts/inject_failure.py controller-crash --pid <PID>
-```
-
-### 6. Generate Environment & Reproducibility Manifest
+### 6. Generate Reproducibility Manifest
 ```bash
 python scripts/generate_manifest.py
 ```
 
-### 7. Run Full Unit & Resilience Test Suite
+### 7. Run Complete Unit Test Suite
 ```bash
 python -m unittest discover tests/
 ```
@@ -173,50 +185,45 @@ python -m unittest discover tests/
 
 ```
 .
-├── config/                     # FRRouting daemon & vtysh configurations for ASes 65001-65004
-├── data/                       # Telemetry databases and persistent state store
+├── config/                     # FRRouting daemons & vtysh configs for all 10 ASes (65001-65010)
+├── data/                       # Telemetry databases and persistent state stores
 ├── environment_manifest.json   # Machine-generated reproducibility manifest
 ├── experiments/                # Experimental benchmarking framework
 │   ├── attacks/                # Programmable BGP attack injectors & historical signatures
 │   ├── baseline/               # Baseline scenarios & latency profiling
 │   ├── comparative/            # 4-way evaluation harness (Standard, RPKI, Heuristics, AI)
 │   └── results/                # Quantitative JSON/CSV datasets and PNG figures
-├── models/                     # Trained calibrated ML models and schema metadata
+├── models/                     # Trained calibrated ML models and metadata
 ├── requirements.lock           # Exact pinned dependency lockfile
 ├── requirements.txt            # Python dependency specifiers
-├── scripts/                    # Master CLI runners, benchmarks, and chaos injectors
-│   ├── generate_evaluation_artifacts.py # Benchmark table generator with evidence levels
+├── scripts/                    # Master CLI runners, benchmarks, and data collection
+│   ├── collect_training_data.py # Dual-observer empirical data collection campaign
+│   ├── deploy_docker.py        # 10-AS Docker Compose manager
 │   ├── generate_manifest.py    # Generates environment_manifest.json
-│   ├── inject_failure.py       # Link, session, controller-crash & DB chaos utility
-│   ├── measure_pdr.py          # End-to-end ICMP data-plane traffic probe
-│   ├── run_autonomous_controller.py # Synchronous polling closed-loop controller
+│   ├── inject_failure.py       # Link, session, and chaos utility
+│   ├── measure_pdr.py          # Data-plane traffic probe
+│   ├── run_autonomous_controller.py # Single-router autonomous controller
+│   ├── run_dual_controller.py  # Dual decentralized controller (Core + Edge)
 │   ├── run_live_benchmark.py   # Live MTTD/MTTM measurement harness
-│   └── train_ai_models.py      # Retrains RF/LR with cross-seed holdout
-├── src/                        # Core AI and Control Plane source code
-│   ├── ai/                     # Feature extractor, classifiers, and hybrid trust engine
-│   ├── dataset/                # Overlapping dataset generator & training pipeline
+│   ├── train_ai_models.py      # Empirical & synthetic ML training CLI
+│   ├── verify_convergence.py   # Full 10-AS convergence verification
+│   └── verify_live_lifecycle.py # End-to-end closed-loop lifecycle verification
+├── src/                        # Core source code
+│   ├── ai/                     # 10-feature extractor, classifiers, hybrid trust engine
+│   ├── dataset/                # Dataset generation and empirical training pipeline
 │   ├── policy/                 # Policy engine, shadow validator, rollback, state store
 │   ├── telemetry/              # FRR collector, sliding window buffer, SQLite storage
-│   └── utils/                  # Logging and system profiling utilities
+│   └── utils/                  # Logging and system utilities
 ├── tests/                      # Full test suite
-│   ├── test_classifier.py
-│   ├── test_failure_resilience.py # Controller-level resilience tests (timeout, malformed JSON, etc.)
-│   ├── test_feature_extractor.py
-│   ├── test_policy_engine.py
-│   ├── test_rib_verification.py   # Deep RIB best-path verification tests
-│   ├── test_shadow_rollback.py
-│   ├── test_state_and_verification.py
-│   ├── test_state_store_events.py # Detection & mitigation timestamp event tests
-│   └── test_telemetry_sync.py
-├── topologies/                 # Docker Compose & Containerlab manifests
-└── README.md                   # Complete documentation
+├── topologies/                 # Docker Compose & Containerlab 10-AS manifests
+└── v3/                         # Authoritative v3 results and evidence package
 ```
 
 ---
 
 ## 👥 Authors & Academic Context
 
-Developed as part of the **AI-Enhanced BGP Autonomous Control Plane Project**:
+Developed as part of the **AI-Enhanced BGP Autonomous Control Plane Project (v3.0)**:
 - **Authors**: M Sudalai Kumar, B Satlas Rohit, S Ajay Kumar, S Srinivasan
 - **Supervisor / Institution**: Department of Network Engineering & Data Communications
 

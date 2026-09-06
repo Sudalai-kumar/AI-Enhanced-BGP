@@ -102,22 +102,32 @@ MODELLED_VALUES: Dict[str, Dict[str, Any]] = {
 }
 
 
+def _get_db_paths() -> List[str]:
+    candidate_paths = [
+        os.path.join(_REPO_ROOT, "data", "controller_state_as65003.db"),
+        os.path.join(_REPO_ROOT, "data", "controller_state_as65001.db"),
+        _DB_PATH
+    ]
+    return [p for p in candidate_paths if os.path.exists(p)]
+
+
 def _poll_detection_sync(prefix: str, t0: float, timeout_sec: float = 60.0,
                          poll_interval: float = 0.1) -> Optional[float]:
     deadline = t0 + timeout_sec
     while time.time() < deadline:
-        try:
-            with sqlite3.connect(_DB_PATH) as conn:
-                row = conn.execute(
-                    "SELECT detected_at FROM detection_events "
-                    "WHERE prefix = ? AND detected_at > ? "
-                    "ORDER BY detected_at DESC LIMIT 1",
-                    (prefix, t0)
-                ).fetchone()
-                if row:
-                    return row[0]
-        except Exception:
-            pass
+        for db in _get_db_paths():
+            try:
+                with sqlite3.connect(db) as conn:
+                    row = conn.execute(
+                        "SELECT detected_at FROM detection_events "
+                        "WHERE prefix = ? AND detected_at > ? "
+                        "ORDER BY detected_at ASC LIMIT 1",
+                        (prefix, t0)
+                    ).fetchone()
+                    if row:
+                        return row[0]
+            except Exception:
+                pass
         time.sleep(poll_interval)
     return None
 
@@ -126,36 +136,41 @@ def _poll_mitigation_sync(prefix: str, t0: float, timeout_sec: float = 60.0,
                           poll_interval: float = 0.1) -> Optional[float]:
     deadline = t0 + timeout_sec
     while time.time() < deadline:
-        try:
-            with sqlite3.connect(_DB_PATH) as conn:
-                row = conn.execute(
-                    "SELECT mitigated_at FROM detection_events "
-                    "WHERE prefix = ? AND detected_at > ? AND mitigated_at IS NOT NULL "
-                    "ORDER BY detected_at DESC LIMIT 1",
-                    (prefix, t0)
-                ).fetchone()
-                if row:
-                    return row[0]
-        except Exception:
-            pass
+        for db in _get_db_paths():
+            try:
+                with sqlite3.connect(db) as conn:
+                    row = conn.execute(
+                        "SELECT mitigated_at FROM detection_events "
+                        "WHERE prefix = ? AND detected_at > ? AND mitigated_at IS NOT NULL "
+                        "ORDER BY mitigated_at ASC LIMIT 1",
+                        (prefix, t0)
+                    ).fetchone()
+                    if row:
+                        return row[0]
+            except Exception:
+                pass
         time.sleep(poll_interval)
     return None
 
 
 async def _inject_scenario_attack(injector: BGPAttackInjector, scenario: Dict[str, Any]) -> bool:
-    """Invokes the corresponding attack function asynchronously."""
+    """Invokes the corresponding attack function asynchronously for the 10-AS topology."""
     action = scenario.get("action_type")
     prefix = scenario.get("prefix", "192.0.2.0/24")
 
     if action == "direct_hijack":
-        return await injector.inject_direct_hijack(prefix=prefix, rogue_origin_as=65004)
+        return await injector.inject_direct_hijack(prefix=prefix, rogue_origin_as=65010)
     elif action == "subprefix_hijack":
-        return await injector.inject_subprefix_hijack(subprefix=prefix, rogue_origin_as=65004)
+        return await injector.inject_subprefix_hijack(subprefix=prefix, rogue_origin_as=65010)
     elif action == "burst_flapping":
         await injector.inject_burst_flapping(prefix=prefix, cycles=3, interval=0.3)
         return True
     elif action == "historical":
         key = scenario.get("incident_key")
+        if key == "google_2017_route_leak":
+            return await injector.inject_route_leak(prefix=prefix, leaked_as_path="65006 65010 65006 65007")
+        elif key == "cloudflare_2019_route_leak":
+            return await injector.inject_route_leak(prefix=prefix, leaked_as_path="65002 65005 65002 65007")
         return await injector.inject_historical_replay(key)
     return False
 
