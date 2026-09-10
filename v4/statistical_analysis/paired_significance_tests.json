@@ -1,0 +1,110 @@
+{
+  "S2_A2_vs_A3": {
+    "scenario": "S2",
+    "comparison": "A2 vs A3",
+    "v1_mean_mttm": 0.1,
+    "v2_mean_mttm": 0.1,
+    "t_statistic": NaN,
+    "p_value": NaN,
+    "statistically_significant": false
+  },
+  "S2_A3_vs_A4": {
+    "scenario": "S2",
+    "comparison": "A3 vs A4",
+    "v1_mean_mttm": 0.1,
+    "v2_mean_mttm": 0.1,
+    "t_statistic": NaN,
+    "p_value": NaN,
+    "statistically_significant": false
+  },
+  "S2_A2_vs_A4": {
+    "scenario": "S2",
+    "comparison": "A2 vs A4",
+    "v1_mean_mttm": 0.1,
+    "v2_mean_mttm": 0.1,
+    "t_statistic": NaN,
+    "p_value": NaN,
+    "statistically_significant": false
+  },
+  "S2_A1_vs_A4": {
+    "scenario": "S2",
+    "comparison": "A1 vs A4",
+    "v1_mean_mttm": 0.1,
+    "v2_mean_mttm": 0.1,
+    "t_statistic": NaN,
+    "p_value": NaN,
+    "statistically_significant": false
+  },
+  "S3_A2_vs_A3": {
+    "scenario": "S3",
+    "comparison": "A2 vs A3",
+    "v1_mean_mttm": null,
+    "v2_mean_mttm": 0.362,
+    "t_statistic": null,
+    "p_value": null,
+    "statistically_significant": false
+  },
+  "S3_A3_vs_A4": {
+    "scenario": "S3",
+    "comparison": "A3 vs A4",
+    "v1_mean_mttm": 0.362,
+    "v2_mean_mttm": 0.94,
+    "t_statistic": -3.6524,
+    "p_value": 0.001998,
+    "statistically_significant": true
+  },
+  "S3_A2_vs_A4": {
+    "scenario": "S3",
+    "comparison": "A2 vs A4",
+    "v1_mean_mttm": null,
+    "v2_mean_mttm": 0.94,
+    "t_statistic": null,
+    "p_value": null,
+    "statistically_significant": false
+  },
+  "S3_A1_vs_A4": {
+    "scenario": "S3",
+    "comparison": "A1 vs A4",
+    "v1_mean_mttm": 0.1,
+    "v2_mean_mttm": 0.94,
+    "t_statistic": -6.6804,
+    "p_value": 9.1e-05,
+    "statistically_significant": true
+  },
+  "S6_A2_vs_A3": {
+    "scenario": "S6",
+    "comparison": "A2 vs A3",
+    "v1_mean_mttm": null,
+    "v2_mean_mttm": 0.1,
+    "t_statistic": null,
+    "p_value": null,
+    "statistically_significant": false
+  },
+  "S6_A3_vs_A4": {
+    "scenario": "S6",
+    "comparison": "A3 vs A4",
+    "v1_mean_mttm": 0.1,
+    "v2_mean_mttm": 0.463,
+    "t_statistic": -12.3054,
+    "p_value": 1e-06,
+    "statistically_significant": true
+  },
+  "S6_A2_vs_A4": {
+    "scenario": "S6",
+    "comparison": "A2 vs A4",
+    "v1_mean_mttm": null,
+    "v2_mean_mttm": 0.463,
+    "t_statistic": null,
+    "p_value": null,
+    "statistically_significant": false
+  },
+  "S6_A1_vs_A4": {
+    "scenario": "S6",
+    "comparison": "A1 vs A4",
+    "v1_mean_mttm": 0.1,
+    "v2_mean_mttm": 0.463,
+    "t_statistic": -12.3054,
+    "p_value": 1e-06,
+    "statistically_significant": true
+  }
+}

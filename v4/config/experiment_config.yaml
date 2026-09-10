@@ -1,0 +1,105 @@
+# V4 Scientific Validation & Ablation Experiment Configuration
+# Defines global seeds, parameters, and experimental matrix
+
+metadata:
+  version: "4.0.0"
+  stage: "Scientific Validation and Ablation"
+  created_at: "2026-09-10T22:30:00Z"
+
+seeds:
+  global_seed: 2026
+  train_seed: 42
+  test_seed: 99
+  fpr_seed: 77
+  robustness_seed: 512
+
+scenarios:
+  - id: "S1"
+    name: "Direct Prefix Hijack"
+    target_prefix: "192.0.2.0/24"
+    target_origin: 65010
+    expected_class: 3
+    description: "Rogue AS65010 originates exact /24 prefix allocated to Stub AS65007."
+  - id: "S2"
+    name: "Sub-Prefix Hijack (/25)"
+    target_prefix: "192.0.2.0/25"
+    target_origin: 65010
+    expected_class: 3
+    description: "Rogue AS65010 originates more specific /25 sub-prefix intercepting traffic."
+  - id: "S3"
+    name: "Synthetic Route Flapping Burst"
+    target_prefix: "192.0.2.0/24"
+    target_origin: 65007
+    expected_class: 1
+    description: "Rapid route oscillation and withdrawal cycles creating control-plane churn."
+  - id: "S4"
+    name: "YouTube 2008 Replay"
+    target_prefix: "208.65.153.0/24"
+    target_origin: 65010
+    expected_class: 3
+    description: "Topology-local replay of historical PT / YouTube sub-prefix hijack."
+  - id: "S5"
+    name: "Google / Rostelecom Route Leak (2017)"
+    target_prefix: "192.0.2.0/24"
+    target_origin: 15169
+    expected_class: 2
+    description: "Gao-Rexford valley-free violation / route leak pattern replay."
+  - id: "S6"
+    name: "Cloudflare / Verizon Route Leak (2019)"
+    target_prefix: "192.0.2.0/24"
+    target_origin: 13335
+    expected_class: 2
+    description: "Large-scale transitive customer-to-peer route leak pattern replay."
+
+ablation_variants:
+  - id: "A0"
+    name: "Standard BGP"
+    use_detector: false
+    detector_type: "none"
+    use_trust_score: false
+    use_shadow_validation: false
+    use_autonomous_mitigation: false
+  - id: "A1"
+    name: "BGP + Heuristics"
+    use_detector: true
+    detector_type: "heuristic"
+    use_trust_score: false
+    use_shadow_validation: false
+    use_autonomous_mitigation: true
+  - id: "A2"
+    name: "BGP + ML Only"
+    use_detector: true
+    detector_type: "ml"
+    use_trust_score: false
+    use_shadow_validation: false
+    use_autonomous_mitigation: true
+  - id: "A3"
+    name: "BGP + ML + Behavioral Trust"
+    use_detector: true
+    detector_type: "ml"
+    use_trust_score: true
+    use_shadow_validation: false
+    use_autonomous_mitigation: true
+  - id: "A4"
+    name: "Full Proposed System"
+    use_detector: true
+    detector_type: "ml"
+    use_trust_score: true
+    use_shadow_validation: true
+    use_autonomous_mitigation: true
+
+matrix:
+  main_system_trials: 20
+  ablation_trials_per_scenario: 10
+  ablation_scenarios: ["S2", "S3", "S6"]
+  fpr_stress_windows: 1000
+  class_imbalance_ratios:
+    - { normal: 0.90, attack: 0.10, name: "90/10" }
+    - { normal: 0.95, attack: 0.05, name: "95/5" }
+    - { normal: 0.99, attack: 0.01, name: "99/1" }
+
+timeouts:
+  max_eval_steps: 15
+  step_delay_sec: 0.2
+  convergence_timeout_sec: 15.0
+  quarantine_settle_sec: 0.4

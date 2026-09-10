@@ -1,0 +1,121 @@
+scenario_id,scenario_name,trial_id,seed,detected,mttd_sec,mitigated,mttm_sec,msr_percent,applied_loc_pref,applied_community,rib_verified,rollback_verified,failure_code,action_desc,min_trust_score
+S1,Synthetic Direct Prefix Hijack,T01,2157,True,0.79,True,0.404,100.0,80,,True,False,,Soft Deprioritization (LocalPref 80),0.45
+S1,Synthetic Direct Prefix Hijack,T02,2188,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.42
+S1,Synthetic Direct Prefix Hijack,T03,2219,True,0.198,True,0.198,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.43
+S1,Synthetic Direct Prefix Hijack,T04,2250,True,0.985,True,0.406,100.0,80,,True,False,,Soft Deprioritization (LocalPref 80),0.47
+S1,Synthetic Direct Prefix Hijack,T05,2281,True,1.403,True,0.58,100.0,80,,True,False,,Soft Deprioritization (LocalPref 80),0.46
+S1,Synthetic Direct Prefix Hijack,T06,2312,True,0.814,True,0.6,100.0,80,,True,False,,Soft Deprioritization (LocalPref 80),0.5
+S1,Synthetic Direct Prefix Hijack,T07,2343,True,0.185,True,0.185,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.46
+S1,Synthetic Direct Prefix Hijack,T08,2374,True,0.589,True,0.589,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.44
+S1,Synthetic Direct Prefix Hijack,T09,2405,True,0.399,True,0.399,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.44
+S1,Synthetic Direct Prefix Hijack,T10,2436,True,0.61,True,0.61,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.45
+S1,Synthetic Direct Prefix Hijack,T11,2467,True,1.384,True,0.787,100.0,80,,True,False,,Soft Deprioritization (LocalPref 80),0.48
+S1,Synthetic Direct Prefix Hijack,T12,2498,True,0.387,True,0.387,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.46
+S1,Synthetic Direct Prefix Hijack,T13,2529,False,,True,1.401,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.74
+S1,Synthetic Direct Prefix Hijack,T14,2560,True,1.179,True,0.598,100.0,80,,True,False,,Soft Deprioritization (LocalPref 80),0.44
+S1,Synthetic Direct Prefix Hijack,T15,2591,True,0.185,True,0.185,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.43
+S1,Synthetic Direct Prefix Hijack,T16,2622,True,0.203,True,0.203,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.47
+S1,Synthetic Direct Prefix Hijack,T17,2653,True,1.007,True,0.623,100.0,80,,True,False,,Soft Deprioritization (LocalPref 80),0.45
+S1,Synthetic Direct Prefix Hijack,T18,2684,True,0.997,True,0.614,100.0,80,,True,False,,Soft Deprioritization (LocalPref 80),0.44
+S1,Synthetic Direct Prefix Hijack,T19,2715,True,0.616,True,0.616,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.48
+S1,Synthetic Direct Prefix Hijack,T20,2746,True,0.213,True,0.213,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.44
+S2,Synthetic Sub-Prefix Hijack (/25),T01,2257,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+S2,Synthetic Sub-Prefix Hijack (/25),T02,2288,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+S2,Synthetic Sub-Prefix Hijack (/25),T03,2319,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+S2,Synthetic Sub-Prefix Hijack (/25),T04,2350,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.32
+S2,Synthetic Sub-Prefix Hijack (/25),T05,2381,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+S2,Synthetic Sub-Prefix Hijack (/25),T06,2412,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+S2,Synthetic Sub-Prefix Hijack (/25),T07,2443,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.29
+S2,Synthetic Sub-Prefix Hijack (/25),T08,2474,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+S2,Synthetic Sub-Prefix Hijack (/25),T09,2505,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.29
+S2,Synthetic Sub-Prefix Hijack (/25),T10,2536,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.32
+S2,Synthetic Sub-Prefix Hijack (/25),T11,2567,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.29
+S2,Synthetic Sub-Prefix Hijack (/25),T12,2598,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+S2,Synthetic Sub-Prefix Hijack (/25),T13,2629,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+S2,Synthetic Sub-Prefix Hijack (/25),T14,2660,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.32
+S2,Synthetic Sub-Prefix Hijack (/25),T15,2691,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+S2,Synthetic Sub-Prefix Hijack (/25),T16,2722,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+S2,Synthetic Sub-Prefix Hijack (/25),T17,2753,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.32
+S2,Synthetic Sub-Prefix Hijack (/25),T18,2784,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.29
+S2,Synthetic Sub-Prefix Hijack (/25),T19,2815,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+S2,Synthetic Sub-Prefix Hijack (/25),T20,2846,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.29
+S3,Synthetic Route Flapping Burst,T01,2357,False,,True,0.804,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.78
+S3,Synthetic Route Flapping Burst,T02,2388,False,,True,0.798,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.77
+S3,Synthetic Route Flapping Burst,T03,2419,False,,True,1.417,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.76
+S3,Synthetic Route Flapping Burst,T04,2450,False,,True,1.413,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.77
+S3,Synthetic Route Flapping Burst,T05,2481,False,,True,0.61,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.77
+S3,Synthetic Route Flapping Burst,T06,2512,False,,True,0.785,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.78
+S3,Synthetic Route Flapping Burst,T07,2543,False,,True,0.789,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.76
+S3,Synthetic Route Flapping Burst,T08,2574,False,,True,0.781,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.78
+S3,Synthetic Route Flapping Burst,T09,2605,False,,True,0.595,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.77
+S3,Synthetic Route Flapping Burst,T10,2636,False,,True,1.215,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.77
+S3,Synthetic Route Flapping Burst,T11,2667,False,,True,1.187,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.76
+S3,Synthetic Route Flapping Burst,T12,2698,False,,True,0.981,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.77
+S3,Synthetic Route Flapping Burst,T13,2729,False,,True,0.817,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.77
+S3,Synthetic Route Flapping Burst,T14,2760,False,,True,0.594,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.76
+S3,Synthetic Route Flapping Burst,T15,2791,False,,True,0.991,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.76
+S3,Synthetic Route Flapping Burst,T16,2822,False,,True,1.22,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.79
+S3,Synthetic Route Flapping Burst,T17,2853,False,,True,1.401,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.77
+S3,Synthetic Route Flapping Burst,T18,2884,False,,True,0.806,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.76
+S3,Synthetic Route Flapping Burst,T19,2915,False,,False,,0.0,100,,False,True,F1 (Anomaly Not Visible in Ingress Telemetry),None (Propagated),0.77
+S3,Synthetic Route Flapping Burst,T20,2946,False,,True,1.426,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.76
+S4,Pakistan Telecom / YouTube (2008),T01,2457,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.41
+S4,Pakistan Telecom / YouTube (2008),T02,2488,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.39
+S4,Pakistan Telecom / YouTube (2008),T03,2519,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.41
+S4,Pakistan Telecom / YouTube (2008),T04,2550,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.39
+S4,Pakistan Telecom / YouTube (2008),T05,2581,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.39
+S4,Pakistan Telecom / YouTube (2008),T06,2612,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.41
+S4,Pakistan Telecom / YouTube (2008),T07,2643,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.39
+S4,Pakistan Telecom / YouTube (2008),T08,2674,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.4
+S4,Pakistan Telecom / YouTube (2008),T09,2705,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.4
+S4,Pakistan Telecom / YouTube (2008),T10,2736,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.4
+S4,Pakistan Telecom / YouTube (2008),T11,2767,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.4
+S4,Pakistan Telecom / YouTube (2008),T12,2798,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.39
+S4,Pakistan Telecom / YouTube (2008),T13,2829,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.4
+S4,Pakistan Telecom / YouTube (2008),T14,2860,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.4
+S4,Pakistan Telecom / YouTube (2008),T15,2891,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.4
+S4,Pakistan Telecom / YouTube (2008),T16,2922,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.41
+S4,Pakistan Telecom / YouTube (2008),T17,2953,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.4
+S4,Pakistan Telecom / YouTube (2008),T18,2984,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.39
+S4,Pakistan Telecom / YouTube (2008),T19,3015,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.41
+S4,Pakistan Telecom / YouTube (2008),T20,3046,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.39
+S5,Google / Rostelecom Route Leak (2017),T01,2557,False,,True,0.589,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.69
+S5,Google / Rostelecom Route Leak (2017),T02,2588,False,,True,0.407,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T03,2619,False,,True,0.586,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T04,2650,False,,True,0.589,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T05,2681,False,,True,0.585,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.68
+S5,Google / Rostelecom Route Leak (2017),T06,2712,False,,True,0.405,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T07,2743,False,,True,0.411,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.72
+S5,Google / Rostelecom Route Leak (2017),T08,2774,False,,True,0.793,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.69
+S5,Google / Rostelecom Route Leak (2017),T09,2805,False,,True,0.587,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T10,2836,False,,True,0.6,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T11,2867,False,,True,0.579,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T12,2898,False,,True,0.59,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.69
+S5,Google / Rostelecom Route Leak (2017),T13,2929,False,,True,0.599,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T14,2960,False,,True,0.6,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T15,2991,False,,True,0.4,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.68
+S5,Google / Rostelecom Route Leak (2017),T16,3022,False,,True,0.406,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T17,3053,False,,True,0.404,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T18,3084,False,,True,1.021,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T19,3115,False,,True,0.576,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S5,Google / Rostelecom Route Leak (2017),T20,3146,False,,True,0.604,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.69
+S6,Cloudflare / Verizon Route Leak (2019),T01,2657,False,,True,0.402,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T02,2688,False,,True,0.405,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T03,2719,False,,True,0.594,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.68
+S6,Cloudflare / Verizon Route Leak (2019),T04,2750,False,,True,0.412,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.68
+S6,Cloudflare / Verizon Route Leak (2019),T05,2781,False,,True,0.405,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.68
+S6,Cloudflare / Verizon Route Leak (2019),T06,2812,False,,True,0.603,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T07,2843,False,,True,0.405,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.69
+S6,Cloudflare / Verizon Route Leak (2019),T08,2874,False,,True,0.405,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.69
+S6,Cloudflare / Verizon Route Leak (2019),T09,2905,False,,True,0.592,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T10,2936,False,,True,0.41,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.68
+S6,Cloudflare / Verizon Route Leak (2019),T11,2967,False,,True,0.422,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.68
+S6,Cloudflare / Verizon Route Leak (2019),T12,2998,False,,True,0.402,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.69
+S6,Cloudflare / Verizon Route Leak (2019),T13,3029,False,,True,0.586,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T14,3060,False,,True,0.401,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T15,3091,False,,True,0.596,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T16,3122,False,,True,0.414,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T17,3153,False,,True,0.42,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.68
+S6,Cloudflare / Verizon Route Leak (2019),T18,3184,False,,True,0.607,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T19,3215,False,,True,0.405,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67
+S6,Cloudflare / Verizon Route Leak (2019),T20,3246,False,,True,0.598,0.0,80,,True,False,F1 (Anomaly Not Visible in Ingress Telemetry),Soft Deprioritization (LocalPref 80),0.67

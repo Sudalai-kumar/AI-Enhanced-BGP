@@ -1,0 +1,27 @@
+{
+  "version": "4.0.0",
+  "generated_at": "2026-09-10T22:35:00Z",
+  "stage": "Scientific Validation and Ablation",
+  "git_commit": "e8c057e49efaf9b04d18451dde13ff8811e793",
+  "python_version": "3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "docker_version": "Docker version 29.7.2, build a7dcaa6",
+  "frr_image": "quay.io/frrouting/frr:10.2.1",
+  "frr_image_digest": "quay.io/frrouting/frr@sha256:e47e67bd612030cb1bedee2bde85b73913f2ea021573b749deb21d94940f03c1",
+  "random_seeds": {
+    "global_seed": 2026,
+    "train_seed": 42,
+    "test_seed": 99,
+    "fpr_seed": 77,
+    "robustness_seed": 512
+  },
+  "dataset_empirical_samples": 435,
+  "dataset_real_training_sha256": "3f05be18c1e8ee7d78039fdf76784ff1ecabf8813c6bb55c69416a7638a9437b",
+  "model_rf_sha256": "4562d4adc1ac8cc9ae44ff0579fa15f11065c17f76fc24598584998a2980430e",
+  "model_lr_sha256": "bed0e00173c7bdad60334acb85961ab197bee806656c420888ed723ebe8c799f",
+  "model_scaler_sha256": "2a311422fa5a85abb62ffc3200adc8f557f0920f07e517b8f241ede7f17a9567",
+  "model_metadata_sha256": "f8d9139d05bc1bd79ca8fe939fe83f2c22ac0158e0d7474b7f3745b756018561",
+  "ablation_matrix_trials": 150,
+  "repeated_trials_runs": 120,
+  "fpr_stress_windows": 1000
+}

@@ -1,0 +1,19 @@
+{
+  "variant_id": "A0",
+  "variant_name": "Standard BGP",
+  "scenario_id": "S6",
+  "trial_id": "T06",
+  "seed": 2128,
+  "detected": false,
+  "mttd_sec": null,
+  "mitigated": false,
+  "mttm_sec": null,
+  "msr_percent": 0.0,
+  "applied_loc_pref": 100,
+  "applied_community": null,
+  "rib_verified": false,
+  "rollback_verified": true,
+  "failure_code": null,
+  "action_desc": "None (Propagated)",
+  "min_trust_score": 1.0
+}

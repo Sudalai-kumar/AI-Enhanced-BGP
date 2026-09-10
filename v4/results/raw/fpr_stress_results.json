@@ -1,0 +1,28 @@
+{
+  "evaluation_windows": 1000,
+  "traffic_type": "100% Attack-Free Normal BGP Telemetry",
+  "random_forest_standalone": {
+    "false_alarms": 32,
+    "fpr_percent": 3.2,
+    "false_quarantines": 32,
+    "false_quarantine_rate_percent": 3.2
+  },
+  "logistic_regression_standalone": {
+    "false_alarms": 0,
+    "fpr_percent": 0.0,
+    "false_quarantines": 0,
+    "false_quarantine_rate_percent": 0.0
+  },
+  "heuristics_standalone": {
+    "false_alarms": 750,
+    "fpr_percent": 75.0,
+    "false_quarantines": 500,
+    "false_quarantine_rate_percent": 50.0
+  },
+  "full_system_a4_safeguarded": {
+    "false_mitigation_actions": 32,
+    "false_action_rate_percent": 3.2,
+    "false_quarantines": 32,
+    "false_quarantine_rate_percent": 3.2
+  }
+}

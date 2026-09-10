@@ -1,0 +1,8 @@
+| ID   | Scenario Name                          |   Trials | Detection Rate   | MTTD (Mean±Std)   | MTTM (Mean±Std)   | MSR    | RIB Correct   | Rollback Confirmed   |
+|:-----|:---------------------------------------|---------:|:-----------------|:------------------|:------------------|:-------|:--------------|:---------------------|
+| S1   | Synthetic Direct Prefix Hijack         |       20 | 95.0%            | 0.642 ± 0.429 s   | 0.485 ± 0.294 s   | 95.0%  | 100.0%        | 0.0%                 |
+| S2   | Synthetic Sub-Prefix Hijack (/25)      |       20 | 100.0%           | 0.05 ± 0.0 s      | 0.1 ± 0.0 s       | 100.0% | 100.0%        | 0.0%                 |
+| S3   | Synthetic Route Flapping Burst         |       20 | 0.0%             | N/A               | 0.981 ± 0.296 s   | 0.0%   | 95.0%         | 5.0%                 |
+| S4   | Pakistan Telecom / YouTube (2008)      |       20 | 100.0%           | 0.05 ± 0.0 s      | 0.1 ± 0.0 s       | 100.0% | 100.0%        | 0.0%                 |
+| S5   | Google / Rostelecom Route Leak (2017)  |       20 | 0.0%             | N/A               | 0.567 ± 0.149 s   | 0.0%   | 100.0%        | 0.0%                 |
+| S6   | Cloudflare / Verizon Route Leak (2019) |       20 | 0.0%             | N/A               | 0.474 ± 0.092 s   | 0.0%   | 100.0%        | 0.0%                 |

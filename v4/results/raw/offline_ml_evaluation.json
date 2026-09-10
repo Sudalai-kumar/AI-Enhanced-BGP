@@ -1,0 +1,244 @@
+{
+  "dataset_metadata": {
+    "total_samples": 435,
+    "train_samples": 326,
+    "test_samples": 109,
+    "features": [
+      "as_path_len",
+      "as_path_edit_distance",
+      "origin_as_change",
+      "prefix_mask_len",
+      "announcements_per_minute",
+      "flap_count_5min",
+      "loc_pref_current",
+      "route_age_seconds",
+      "valley_free_violation",
+      "neighbor_diversity"
+    ],
+    "classes": [
+      "Normal",
+      "Suspicious",
+      "Route Leak Candidate",
+      "Prefix Hijack Candidate"
+    ],
+    "distribution": {
+      "0": 300,
+      "3": 90,
+      "2": 30,
+      "1": 15
+    }
+  },
+  "random_forest": {
+    "accuracy": 0.8165,
+    "macro_f1": 0.4117,
+    "weighted_f1": 0.7696,
+    "test_fpr": 0.0267,
+    "classification_report": {
+      "Normal": {
+        "precision": 0.8111111111111111,
+        "recall": 0.9733333333333334,
+        "f1-score": 0.8848484848484849,
+        "support": 75.0
+      },
+      "Suspicious": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 4.0
+      },
+      "Route Leak Candidate": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 7.0
+      },
+      "Prefix Hijack Candidate": {
+        "precision": 0.8421052631578947,
+        "recall": 0.6956521739130435,
+        "f1-score": 0.7619047619047619,
+        "support": 23.0
+      },
+      "accuracy": 0.8165137614678899,
+      "macro avg": {
+        "precision": 0.41330409356725145,
+        "recall": 0.4172463768115942,
+        "f1-score": 0.41168831168831166,
+        "support": 109.0
+      },
+      "weighted avg": {
+        "precision": 0.7357959117978433,
+        "recall": 0.8165137614678899,
+        "f1-score": 0.7696095952976686,
+        "support": 109.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        73,
+        0,
+        0,
+        2
+      ],
+      [
+        4,
+        0,
+        0,
+        0
+      ],
+      [
+        6,
+        0,
+        0,
+        1
+      ],
+      [
+        7,
+        0,
+        0,
+        16
+      ]
+    ]
+  },
+  "logistic_regression": {
+    "accuracy": 0.8349,
+    "macro_f1": 0.4283,
+    "weighted_f1": 0.7875,
+    "test_fpr": 0.0,
+    "classification_report": {
+      "Normal": {
+        "precision": 0.8064516129032258,
+        "recall": 1.0,
+        "f1-score": 0.8928571428571429,
+        "support": 75.0
+      },
+      "Suspicious": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 4.0
+      },
+      "Route Leak Candidate": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 7.0
+      },
+      "Prefix Hijack Candidate": {
+        "precision": 1.0,
+        "recall": 0.6956521739130435,
+        "f1-score": 0.8205128205128205,
+        "support": 23.0
+      },
+      "accuracy": 0.8348623853211009,
+      "macro avg": {
+        "precision": 0.45161290322580644,
+        "recall": 0.42391304347826086,
+        "f1-score": 0.4283424908424909,
+        "support": 109.0
+      },
+      "weighted avg": {
+        "precision": 0.7659070730985498,
+        "recall": 0.8348623853211009,
+        "f1-score": 0.7874869778539504,
+        "support": 109.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        75,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0,
+        0
+      ],
+      [
+        7,
+        0,
+        0,
+        0
+      ],
+      [
+        7,
+        0,
+        0,
+        16
+      ]
+    ]
+  },
+  "heuristics": {
+    "accuracy": 0.8349,
+    "macro_f1": 0.4283,
+    "weighted_f1": 0.7875,
+    "test_fpr": 0.0,
+    "classification_report": {
+      "Normal": {
+        "precision": 0.8064516129032258,
+        "recall": 1.0,
+        "f1-score": 0.8928571428571429,
+        "support": 75.0
+      },
+      "Suspicious": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 4.0
+      },
+      "Route Leak Candidate": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 7.0
+      },
+      "Prefix Hijack Candidate": {
+        "precision": 1.0,
+        "recall": 0.6956521739130435,
+        "f1-score": 0.8205128205128205,
+        "support": 23.0
+      },
+      "accuracy": 0.8348623853211009,
+      "macro avg": {
+        "precision": 0.45161290322580644,
+        "recall": 0.42391304347826086,
+        "f1-score": 0.4283424908424909,
+        "support": 109.0
+      },
+      "weighted avg": {
+        "precision": 0.7659070730985498,
+        "recall": 0.8348623853211009,
+        "f1-score": 0.7874869778539504,
+        "support": 109.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        75,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0,
+        0
+      ],
+      [
+        7,
+        0,
+        0,
+        0
+      ],
+      [
+        7,
+        0,
+        0,
+        16
+      ]
+    ]
+  }
+}

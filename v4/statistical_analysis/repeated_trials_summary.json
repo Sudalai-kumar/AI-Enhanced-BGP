@@ -1,0 +1,230 @@
+{
+  "S1": {
+    "scenario_id": "S1",
+    "scenario_name": "Synthetic Direct Prefix Hijack",
+    "trials": 20,
+    "detection_rate_percent": 95.0,
+    "mttd": {
+      "mean": 0.642,
+      "std": 0.429,
+      "median": 0.61,
+      "p95": 1.386,
+      "ci95": [
+        0.449,
+        0.835
+      ]
+    },
+    "mttm": {
+      "mean": 0.485,
+      "std": 0.294,
+      "median": 0.493,
+      "p95": 0.818,
+      "ci95": [
+        0.356,
+        0.614
+      ]
+    },
+    "msr_percent": {
+      "mean": 95.0,
+      "std": 22.361,
+      "median": 100.0,
+      "p95": 100.0,
+      "ci95": [
+        85.2,
+        104.8
+      ]
+    },
+    "rib_verified_percent": 100.0,
+    "rollback_verified_percent": 0.0
+  },
+  "S2": {
+    "scenario_id": "S2",
+    "scenario_name": "Synthetic Sub-Prefix Hijack (/25)",
+    "trials": 20,
+    "detection_rate_percent": 100.0,
+    "mttd": {
+      "mean": 0.05,
+      "std": 0.0,
+      "median": 0.05,
+      "p95": 0.05,
+      "ci95": [
+        0.05,
+        0.05
+      ]
+    },
+    "mttm": {
+      "mean": 0.1,
+      "std": 0.0,
+      "median": 0.1,
+      "p95": 0.1,
+      "ci95": [
+        0.1,
+        0.1
+      ]
+    },
+    "msr_percent": {
+      "mean": 100.0,
+      "std": 0.0,
+      "median": 100.0,
+      "p95": 100.0,
+      "ci95": [
+        100.0,
+        100.0
+      ]
+    },
+    "rib_verified_percent": 100.0,
+    "rollback_verified_percent": 0.0
+  },
+  "S3": {
+    "scenario_id": "S3",
+    "scenario_name": "Synthetic Route Flapping Burst",
+    "trials": 20,
+    "detection_rate_percent": 0.0,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": 0.981,
+      "std": 0.296,
+      "median": 0.817,
+      "p95": 1.418,
+      "ci95": [
+        0.847,
+        1.114
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "rib_verified_percent": 95.0,
+    "rollback_verified_percent": 5.0
+  },
+  "S4": {
+    "scenario_id": "S4",
+    "scenario_name": "Pakistan Telecom / YouTube (2008)",
+    "trials": 20,
+    "detection_rate_percent": 100.0,
+    "mttd": {
+      "mean": 0.05,
+      "std": 0.0,
+      "median": 0.05,
+      "p95": 0.05,
+      "ci95": [
+        0.05,
+        0.05
+      ]
+    },
+    "mttm": {
+      "mean": 0.1,
+      "std": 0.0,
+      "median": 0.1,
+      "p95": 0.1,
+      "ci95": [
+        0.1,
+        0.1
+      ]
+    },
+    "msr_percent": {
+      "mean": 100.0,
+      "std": 0.0,
+      "median": 100.0,
+      "p95": 100.0,
+      "ci95": [
+        100.0,
+        100.0
+      ]
+    },
+    "rib_verified_percent": 100.0,
+    "rollback_verified_percent": 0.0
+  },
+  "S5": {
+    "scenario_id": "S5",
+    "scenario_name": "Google / Rostelecom Route Leak (2017)",
+    "trials": 20,
+    "detection_rate_percent": 0.0,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": 0.567,
+      "std": 0.149,
+      "median": 0.587,
+      "p95": 0.804,
+      "ci95": [
+        0.501,
+        0.632
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "rib_verified_percent": 100.0,
+    "rollback_verified_percent": 0.0
+  },
+  "S6": {
+    "scenario_id": "S6",
+    "scenario_name": "Cloudflare / Verizon Route Leak (2019)",
+    "trials": 20,
+    "detection_rate_percent": 0.0,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": 0.474,
+      "std": 0.092,
+      "median": 0.413,
+      "p95": 0.603,
+      "ci95": [
+        0.434,
+        0.515
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "rib_verified_percent": 100.0,
+    "rollback_verified_percent": 0.0
+  }
+}

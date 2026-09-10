@@ -1,0 +1,151 @@
+variant_id,variant_name,scenario_id,trial_id,seed,detected,mttd_sec,mitigated,mttm_sec,msr_percent,applied_loc_pref,applied_community,rib_verified,rollback_verified,failure_code,action_desc,min_trust_score
+A0,Standard BGP,S2,T01,2043,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T01,2043,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T01,2043,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T01,2043,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+A4,Full Proposed System,S2,T01,2043,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+A0,Standard BGP,S2,T02,2060,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T02,2060,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T02,2060,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T02,2060,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+A4,Full Proposed System,S2,T02,2060,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+A0,Standard BGP,S2,T03,2077,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T03,2077,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T03,2077,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T03,2077,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+A4,Full Proposed System,S2,T03,2077,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+A0,Standard BGP,S2,T04,2094,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T04,2094,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T04,2094,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T04,2094,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.33
+A4,Full Proposed System,S2,T04,2094,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.33
+A0,Standard BGP,S2,T05,2111,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T05,2111,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T05,2111,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T05,2111,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+A4,Full Proposed System,S2,T05,2111,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.3
+A0,Standard BGP,S2,T06,2128,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T06,2128,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T06,2128,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T06,2128,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+A4,Full Proposed System,S2,T06,2128,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+A0,Standard BGP,S2,T07,2145,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T07,2145,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T07,2145,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T07,2145,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.32
+A4,Full Proposed System,S2,T07,2145,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.32
+A0,Standard BGP,S2,T08,2162,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T08,2162,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T08,2162,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T08,2162,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.32
+A4,Full Proposed System,S2,T08,2162,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.32
+A0,Standard BGP,S2,T09,2179,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T09,2179,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T09,2179,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T09,2179,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+A4,Full Proposed System,S2,T09,2179,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.31
+A0,Standard BGP,S2,T10,2196,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S2,T10,2196,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0),0.0
+A2,BGP + ML Only,S2,T10,2196,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.0
+A3,BGP + ML + Behavioral Trust,S2,T10,2196,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.29
+A4,Full Proposed System,S2,T10,2196,True,0.05,True,0.1,100.0,0,no-export,True,False,,Quarantine (LocalPref 0 + no-export),0.29
+A0,Standard BGP,S3,T01,2043,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T01,2043,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T01,2043,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T01,2043,False,,True,0.201,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A4,Full Proposed System,S3,T01,2043,False,,True,0.801,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A0,Standard BGP,S3,T02,2060,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T02,2060,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T02,2060,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T02,2060,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.77
+A4,Full Proposed System,S3,T02,2060,False,,True,0.602,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.77
+A0,Standard BGP,S3,T03,2077,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T03,2077,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T03,2077,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T03,2077,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A4,Full Proposed System,S3,T03,2077,False,,True,0.585,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A0,Standard BGP,S3,T04,2094,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T04,2094,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T04,2094,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T04,2094,False,,True,0.603,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.77
+A4,Full Proposed System,S3,T04,2094,False,,True,1.2,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.77
+A0,Standard BGP,S3,T05,2111,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T05,2111,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T05,2111,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T05,2111,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A4,Full Proposed System,S3,T05,2111,False,,True,0.797,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A0,Standard BGP,S3,T06,2128,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T06,2128,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T06,2128,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T06,2128,False,,True,1.002,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A4,Full Proposed System,S3,T06,2128,False,,True,1.784,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A0,Standard BGP,S3,T07,2145,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T07,2145,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T07,2145,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T07,2145,False,,True,0.406,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.77
+A4,Full Proposed System,S3,T07,2145,False,,True,1.002,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.77
+A0,Standard BGP,S3,T08,2162,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T08,2162,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T08,2162,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T08,2162,False,,True,0.604,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.78
+A4,Full Proposed System,S3,T08,2162,False,,True,1.207,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.78
+A0,Standard BGP,S3,T09,2179,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T09,2179,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T09,2179,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T09,2179,False,,True,0.403,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A4,Full Proposed System,S3,T09,2179,False,,True,1.01,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A0,Standard BGP,S3,T10,2196,False,,False,,50.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S3,T10,2196,True,0.05,True,0.1,100.0,80,,True,False,,Deprioritize (LocalPref 80),0.0
+A2,BGP + ML Only,S3,T10,2196,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S3,T10,2196,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A4,Full Proposed System,S3,T10,2196,False,,True,0.409,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.76
+A0,Standard BGP,S6,T01,2043,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T01,2043,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T01,2043,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T01,2043,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T01,2043,False,,True,0.407,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A0,Standard BGP,S6,T02,2060,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T02,2060,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T02,2060,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T02,2060,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T02,2060,False,,True,0.405,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A0,Standard BGP,S6,T03,2077,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T03,2077,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T03,2077,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T03,2077,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T03,2077,False,,True,0.585,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A0,Standard BGP,S6,T04,2094,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T04,2094,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T04,2094,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T04,2094,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T04,2094,False,,True,0.403,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A0,Standard BGP,S6,T05,2111,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T05,2111,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T05,2111,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T05,2111,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T05,2111,False,,True,0.604,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A0,Standard BGP,S6,T06,2128,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T06,2128,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T06,2128,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T06,2128,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T06,2128,False,,True,0.402,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A0,Standard BGP,S6,T07,2145,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T07,2145,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T07,2145,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T07,2145,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T07,2145,False,,True,0.406,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A0,Standard BGP,S6,T08,2162,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T08,2162,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T08,2162,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T08,2162,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T08,2162,False,,True,0.604,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A0,Standard BGP,S6,T09,2179,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T09,2179,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T09,2179,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T09,2179,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T09,2179,False,,True,0.403,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A0,Standard BGP,S6,T10,2196,False,,False,,0.0,100,,False,True,,None (Propagated),1.0
+A1,BGP + Heuristics,S6,T10,2196,True,0.05,True,0.1,100.0,50,,True,False,,Deprioritize (LocalPref 50),0.0
+A2,BGP + ML Only,S6,T10,2196,False,,False,,0.0,100,,False,True,F2 (Classifier Misclassification),None (Propagated),1.0
+A3,BGP + ML + Behavioral Trust,S6,T10,2196,False,,True,0.1,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67
+A4,Full Proposed System,S6,T10,2196,False,,True,0.409,0.0,80,,True,False,F2 (Classifier Misclassification),Soft Deprioritization (LocalPref 80),0.67

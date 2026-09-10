@@ -1,0 +1,19 @@
+{
+  "variant_id": "A3",
+  "variant_name": "BGP + ML + Behavioral Trust",
+  "scenario_id": "S6",
+  "trial_id": "T06",
+  "seed": 2128,
+  "detected": false,
+  "mttd_sec": null,
+  "mitigated": true,
+  "mttm_sec": 0.1,
+  "msr_percent": 0.0,
+  "applied_loc_pref": 80,
+  "applied_community": null,
+  "rib_verified": true,
+  "rollback_verified": false,
+  "failure_code": "F2 (Classifier Misclassification)",
+  "action_desc": "Soft Deprioritization (LocalPref 80)",
+  "min_trust_score": 0.67
+}

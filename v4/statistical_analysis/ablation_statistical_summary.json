@@ -1,0 +1,557 @@
+{
+  "A0_S2": {
+    "variant_id": "A0",
+    "scenario_id": "S2",
+    "trials_count": 10,
+    "detected_count": 0,
+    "mitigated_count": 0,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "A0_S3": {
+    "variant_id": "A0",
+    "scenario_id": "S3",
+    "trials_count": 10,
+    "detected_count": 0,
+    "mitigated_count": 0,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "msr_percent": {
+      "mean": 50.0,
+      "std": 0.0,
+      "median": 50.0,
+      "p95": 50.0,
+      "ci95": [
+        50.0,
+        50.0
+      ]
+    }
+  },
+  "A0_S6": {
+    "variant_id": "A0",
+    "scenario_id": "S6",
+    "trials_count": 10,
+    "detected_count": 0,
+    "mitigated_count": 0,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "A1_S2": {
+    "variant_id": "A1",
+    "scenario_id": "S2",
+    "trials_count": 10,
+    "detected_count": 10,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": 0.05,
+      "std": 0.0,
+      "median": 0.05,
+      "p95": 0.05,
+      "ci95": [
+        0.05,
+        0.05
+      ]
+    },
+    "mttm": {
+      "mean": 0.1,
+      "std": 0.0,
+      "median": 0.1,
+      "p95": 0.1,
+      "ci95": [
+        0.1,
+        0.1
+      ]
+    },
+    "msr_percent": {
+      "mean": 100.0,
+      "std": 0.0,
+      "median": 100.0,
+      "p95": 100.0,
+      "ci95": [
+        100.0,
+        100.0
+      ]
+    }
+  },
+  "A1_S3": {
+    "variant_id": "A1",
+    "scenario_id": "S3",
+    "trials_count": 10,
+    "detected_count": 10,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": 0.05,
+      "std": 0.0,
+      "median": 0.05,
+      "p95": 0.05,
+      "ci95": [
+        0.05,
+        0.05
+      ]
+    },
+    "mttm": {
+      "mean": 0.1,
+      "std": 0.0,
+      "median": 0.1,
+      "p95": 0.1,
+      "ci95": [
+        0.1,
+        0.1
+      ]
+    },
+    "msr_percent": {
+      "mean": 100.0,
+      "std": 0.0,
+      "median": 100.0,
+      "p95": 100.0,
+      "ci95": [
+        100.0,
+        100.0
+      ]
+    }
+  },
+  "A1_S6": {
+    "variant_id": "A1",
+    "scenario_id": "S6",
+    "trials_count": 10,
+    "detected_count": 10,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": 0.05,
+      "std": 0.0,
+      "median": 0.05,
+      "p95": 0.05,
+      "ci95": [
+        0.05,
+        0.05
+      ]
+    },
+    "mttm": {
+      "mean": 0.1,
+      "std": 0.0,
+      "median": 0.1,
+      "p95": 0.1,
+      "ci95": [
+        0.1,
+        0.1
+      ]
+    },
+    "msr_percent": {
+      "mean": 100.0,
+      "std": 0.0,
+      "median": 100.0,
+      "p95": 100.0,
+      "ci95": [
+        100.0,
+        100.0
+      ]
+    }
+  },
+  "A2_S2": {
+    "variant_id": "A2",
+    "scenario_id": "S2",
+    "trials_count": 10,
+    "detected_count": 10,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": 0.05,
+      "std": 0.0,
+      "median": 0.05,
+      "p95": 0.05,
+      "ci95": [
+        0.05,
+        0.05
+      ]
+    },
+    "mttm": {
+      "mean": 0.1,
+      "std": 0.0,
+      "median": 0.1,
+      "p95": 0.1,
+      "ci95": [
+        0.1,
+        0.1
+      ]
+    },
+    "msr_percent": {
+      "mean": 100.0,
+      "std": 0.0,
+      "median": 100.0,
+      "p95": 100.0,
+      "ci95": [
+        100.0,
+        100.0
+      ]
+    }
+  },
+  "A2_S3": {
+    "variant_id": "A2",
+    "scenario_id": "S3",
+    "trials_count": 10,
+    "detected_count": 0,
+    "mitigated_count": 0,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "A2_S6": {
+    "variant_id": "A2",
+    "scenario_id": "S6",
+    "trials_count": 10,
+    "detected_count": 0,
+    "mitigated_count": 0,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "A3_S2": {
+    "variant_id": "A3",
+    "scenario_id": "S2",
+    "trials_count": 10,
+    "detected_count": 10,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": 0.05,
+      "std": 0.0,
+      "median": 0.05,
+      "p95": 0.05,
+      "ci95": [
+        0.05,
+        0.05
+      ]
+    },
+    "mttm": {
+      "mean": 0.1,
+      "std": 0.0,
+      "median": 0.1,
+      "p95": 0.1,
+      "ci95": [
+        0.1,
+        0.1
+      ]
+    },
+    "msr_percent": {
+      "mean": 100.0,
+      "std": 0.0,
+      "median": 100.0,
+      "p95": 100.0,
+      "ci95": [
+        100.0,
+        100.0
+      ]
+    }
+  },
+  "A3_S3": {
+    "variant_id": "A3",
+    "scenario_id": "S3",
+    "trials_count": 10,
+    "detected_count": 0,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": 0.362,
+      "std": 0.304,
+      "median": 0.302,
+      "p95": 0.823,
+      "ci95": [
+        0.174,
+        0.55
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "A3_S6": {
+    "variant_id": "A3",
+    "scenario_id": "S6",
+    "trials_count": 10,
+    "detected_count": 0,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": 0.1,
+      "std": 0.0,
+      "median": 0.1,
+      "p95": 0.1,
+      "ci95": [
+        0.1,
+        0.1
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "A4_S2": {
+    "variant_id": "A4",
+    "scenario_id": "S2",
+    "trials_count": 10,
+    "detected_count": 10,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": 0.05,
+      "std": 0.0,
+      "median": 0.05,
+      "p95": 0.05,
+      "ci95": [
+        0.05,
+        0.05
+      ]
+    },
+    "mttm": {
+      "mean": 0.1,
+      "std": 0.0,
+      "median": 0.1,
+      "p95": 0.1,
+      "ci95": [
+        0.1,
+        0.1
+      ]
+    },
+    "msr_percent": {
+      "mean": 100.0,
+      "std": 0.0,
+      "median": 100.0,
+      "p95": 100.0,
+      "ci95": [
+        100.0,
+        100.0
+      ]
+    }
+  },
+  "A4_S3": {
+    "variant_id": "A4",
+    "scenario_id": "S3",
+    "trials_count": 10,
+    "detected_count": 0,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": 0.94,
+      "std": 0.397,
+      "median": 0.901,
+      "p95": 1.524,
+      "ci95": [
+        0.693,
+        1.186
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "A4_S6": {
+    "variant_id": "A4",
+    "scenario_id": "S6",
+    "trials_count": 10,
+    "detected_count": 0,
+    "mitigated_count": 10,
+    "mttd": {
+      "mean": null,
+      "std": null,
+      "median": null,
+      "p95": null,
+      "ci95": [
+        null,
+        null
+      ]
+    },
+    "mttm": {
+      "mean": 0.463,
+      "std": 0.093,
+      "median": 0.406,
+      "p95": 0.604,
+      "ci95": [
+        0.405,
+        0.521
+      ]
+    },
+    "msr_percent": {
+      "mean": 0.0,
+      "std": 0.0,
+      "median": 0.0,
+      "p95": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    }
+  }
+}

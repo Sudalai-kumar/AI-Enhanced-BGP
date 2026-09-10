@@ -36,6 +36,8 @@ from src.policy.policy_engine import BGPPolicyEngine
 from src.policy.shadow_validator import ShadowValidator
 from src.policy.rollback_manager import RollbackManager
 from src.policy.state_store import ControllerStateStore
+from src.policy.ablation_config import get_variant_config, VariantConfig
+from experiments.comparative.heuristic_detector import HeuristicDetector
 
 logger = setup_logger("autonomous_controller")
 
@@ -45,17 +47,21 @@ class AutonomousBGPController:
                  total_configured_peers: int = 3, heartbeat_interval: float = 10.0,
                  metrics_interval: float = 5.0,
                  baseline_origin_as: int = 65007,
-                 baseline_as_path: str = "65003 65001"):
+                 baseline_as_path: str = "65003 65001",
+                 variant: str = "A4"):
         self.router = router
         self.peer_ip = peer_ip
         self.interval = poll_interval
         self.heartbeat_interval = heartbeat_interval
         self.metrics_interval = metrics_interval
+        self.variant = variant
+        self.variant_config = get_variant_config(variant)
 
         # Telemetry & AI Pipeline
         self.collector = FRRTelemetryCollector(router_container=router, poll_interval=poll_interval, total_configured_peers=total_configured_peers)
         self.feature_extractor = BGPFeatureExtractor(baseline_origin_as=baseline_origin_as, baseline_as_path=baseline_as_path)
         self.classifier = BGPClassifier(model_type=model_type)
+        self.heuristic_detector = HeuristicDetector()
         self.decision_engine = HybridDecisionEngine(classifier=self.classifier)
 
         # Policy, Safeguards & State Store
@@ -145,21 +151,79 @@ class AutonomousBGPController:
                         total_known_peers=self.collector.total_configured_peers
                     )
 
-                    # Model Inference & Trust Scoring
-                    pred_class, probs = self.classifier.predict(features)
-                    decision = self.decision_engine.evaluate(
-                        prefix=prefix,
-                        current_route=route,
-                        feature_vector=features,
-                        raw_probabilities=probs
-                    )
-
+                    # Model Inference & Trust Scoring according to Variant Configuration
                     current_applied_lp = self.active_policies.get(prefix, {}).get("loc_pref", 100)
-                    target_lp, target_comm, action_desc = self.policy_engine.map_trust_to_policy(
-                        trust_score=decision["trust_score"],
-                        class_id=decision["classification_id"],
-                        current_loc_pref=current_applied_lp
-                    )
+
+                    if not self.variant_config.use_detector:
+                        # A0: Standard BGP - No anomaly detection
+                        decision = {
+                            "prefix": prefix,
+                            "classification_id": 0,
+                            "classification_name": "Normal",
+                            "confidence": 1.0,
+                            "trust_score": 1.0,
+                            "reasons": ["A0: Standard BGP Baseline - Anomaly detection disabled"],
+                            "feature_vector": features.tolist(),
+                            "raw_probabilities": [1.0, 0.0, 0.0, 0.0]
+                        }
+                        target_lp, target_comm, action_desc = 100, None, "A0: Standard BGP (No Policy Override)"
+
+                    elif self.variant_config.detector_type == "heuristic":
+                        # A1: Deterministic Heuristic Rules
+                        heur = self.heuristic_detector.evaluate(features)
+                        c_id = heur["class_id"]
+                        target_lp = heur["target_loc_pref"]
+                        target_comm = "no-export" if c_id == 3 else None
+                        action_desc = heur["action"]
+                        decision = {
+                            "prefix": prefix,
+                            "classification_id": c_id,
+                            "classification_name": heur["class_name"],
+                            "confidence": 1.0,
+                            "trust_score": 0.0 if c_id != 0 else 1.0,
+                            "reasons": [heur["reason"]],
+                            "feature_vector": features.tolist(),
+                            "raw_probabilities": [1.0 if i == c_id else 0.0 for i in range(4)]
+                        }
+
+                    elif not self.variant_config.use_trust_score:
+                        # A2: ML Classifier Only (Direct class mapping without behavioral trust weighting)
+                        pred_class, probs = self.classifier.predict(features)
+                        c_id = int(pred_class)
+                        if c_id == 3:
+                            target_lp, target_comm, action_desc = 0, "no-export", "Quarantine (LocalPref 0 + no-export)"
+                        elif c_id == 2:
+                            target_lp, target_comm, action_desc = 50, None, "Hard Deprioritization (LocalPref 50)"
+                        elif c_id == 1:
+                            target_lp, target_comm, action_desc = 80, None, "Soft Deprioritization (LocalPref 80)"
+                        else:
+                            target_lp, target_comm, action_desc = 100, None, "Default Baseline (LocalPref 100)"
+
+                        decision = {
+                            "prefix": prefix,
+                            "classification_id": c_id,
+                            "classification_name": self.classifier.CLASS_NAMES.get(c_id, "Unknown"),
+                            "confidence": float(np.max(probs)),
+                            "trust_score": 0.0 if c_id != 0 else 1.0,
+                            "reasons": [f"A2 ML Prediction: {self.classifier.CLASS_NAMES.get(c_id, 'Unknown')}"],
+                            "feature_vector": features.tolist(),
+                            "raw_probabilities": probs.tolist()
+                        }
+
+                    else:
+                        # A3 / A4: ML + Behavioral Trust Scoring
+                        pred_class, probs = self.classifier.predict(features)
+                        decision = self.decision_engine.evaluate(
+                            prefix=prefix,
+                            current_route=route,
+                            feature_vector=features,
+                            raw_probabilities=probs
+                        )
+                        target_lp, target_comm, action_desc = self.policy_engine.map_trust_to_policy(
+                            trust_score=decision["trust_score"],
+                            class_id=decision["classification_id"],
+                            current_loc_pref=current_applied_lp
+                        )
 
                     decisions.append({
                         "prefix": prefix,
@@ -230,6 +294,10 @@ class AutonomousBGPController:
                         f"Trust: {trust:.2f} | Current LP: {current_applied_lp:3} -> Target LP: {target_lp:3} | Action: {action_desc}"
                     )
 
+                    if not self.variant_config.use_autonomous_mitigation:
+                        # A0: Standard BGP - autonomous mitigation disabled
+                        continue
+
                     if c_id == 0:
                         origin_stable = (features[2] == 0.0)
                         path_stable = (features[8] == 0.0)
@@ -253,13 +321,17 @@ class AutonomousBGPController:
                         self.rollback_manager.process_observation(prefix, is_normal=False)
                         current_comm = self.active_policies.get(prefix, {}).get("community")
                         if target_lp != current_applied_lp or target_comm != current_comm:
-                            should_promote, shadow_status = self.shadow_validator.submit_observation(
-                                prefix=prefix,
-                                target_loc_pref=target_lp,
-                                target_community=target_comm,
-                                class_id=c_id,
-                                current_live_loc_pref=current_applied_lp
-                            )
+                            if not self.variant_config.use_shadow_validation:
+                                should_promote = True
+                                shadow_status = "Bypassed (Immediate Action)"
+                            else:
+                                should_promote, shadow_status = self.shadow_validator.submit_observation(
+                                    prefix=prefix,
+                                    target_loc_pref=target_lp,
+                                    target_community=target_comm,
+                                    class_id=c_id,
+                                    current_live_loc_pref=current_applied_lp
+                                )
 
                             if should_promote:
                                 logger.warning(f"[{prefix}] Promoting Shadow Policy to LIVE: LP={target_lp}, Comm={target_comm}")
@@ -395,6 +467,7 @@ if __name__ == "__main__":
     parser.add_argument("--duration", type=float, default=None, help="Optional run duration (sec)")
     parser.add_argument("--shadow", type=float, default=4.0, help="Shadow validation duration (sec)")
     parser.add_argument("--model", choices=["random_forest", "logistic_regression"], default="random_forest", help="Classifier model")
+    parser.add_argument("--variant", choices=["A0", "A1", "A2", "A3", "A4"], default="A4", help="Ablation variant (A0-A4)")
     parser.add_argument("--heartbeat", type=float, default=10.0, help="Heartbeat interval (sec)")
     parser.add_argument("--metrics-interval", type=float, default=5.0, help="Metrics interval (sec)")
     parser.add_argument("--baseline-origin", type=int, default=65007, help="Baseline origin AS")
@@ -413,6 +486,7 @@ if __name__ == "__main__":
         heartbeat_interval=args.heartbeat,
         metrics_interval=args.metrics_interval,
         baseline_origin_as=args.baseline_origin,
-        baseline_as_path=args.baseline_path
+        baseline_as_path=args.baseline_path,
+        variant=args.variant
     )
-    asyncio.run(controller.run(duration=args.duration))
+    asyncio.run(controller.run_forever(duration=args.duration))

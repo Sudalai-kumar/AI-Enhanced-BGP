@@ -1,0 +1,53 @@
+[
+  {
+    "ratio_tag": "90/10 (10% Attack Rate)",
+    "normal_samples": 300,
+    "attack_samples": 50,
+    "random_forest": {
+      "macro_precision": 0.6943,
+      "macro_recall": 0.5282,
+      "macro_f1": 0.5615,
+      "false_positive_rate": 0.0167
+    },
+    "heuristics": {
+      "macro_precision": 0.4822,
+      "macro_recall": 0.4609,
+      "macro_f1": 0.4696,
+      "false_positive_rate": 0.0
+    }
+  },
+  {
+    "ratio_tag": "95/5 (5% Attack Rate)",
+    "normal_samples": 300,
+    "attack_samples": 50,
+    "random_forest": {
+      "macro_precision": 0.6943,
+      "macro_recall": 0.5282,
+      "macro_f1": 0.5615,
+      "false_positive_rate": 0.0167
+    },
+    "heuristics": {
+      "macro_precision": 0.4822,
+      "macro_recall": 0.4609,
+      "macro_f1": 0.4696,
+      "false_positive_rate": 0.0
+    }
+  },
+  {
+    "ratio_tag": "99/1 (1% Rare Attack Rate)",
+    "normal_samples": 300,
+    "attack_samples": 50,
+    "random_forest": {
+      "macro_precision": 0.6943,
+      "macro_recall": 0.5282,
+      "macro_f1": 0.5615,
+      "false_positive_rate": 0.0167
+    },
+    "heuristics": {
+      "macro_precision": 0.4822,
+      "macro_recall": 0.4609,
+      "macro_f1": 0.4696,
+      "false_positive_rate": 0.0
+    }
+  }
+]

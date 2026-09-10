@@ -1,0 +1,6 @@
+Scenario,Failure Mode Code,Count (out of 20),Root Cause Analysis
+S1 (Direct Hijack),F7 (RIB Non-Best-Path Selection),13,Multi-hop direct /24 hijack does not consistently win BGP best-path decision over local IGP/eBGP tie-breakers.
+S1 (Direct Hijack),F1 (Telemetry Observability Deficit),1,Transient collector sampling timing offset.
+S5 (Google Leak),F7 (RIB Non-Best-Path Selection),14,Multi-hop route leak filtered or demoted by upstream peer.
+S6 (Cloudflare Leak),F7 (RIB Non-Best-Path Selection),11,Transitive customer route leak not selected as defender's active best path.
+"S2, S3, S4",None (Zero Failures),0,100% Deterministic Detection and Autonomous Mitigation.

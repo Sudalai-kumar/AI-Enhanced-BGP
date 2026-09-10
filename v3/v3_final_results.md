@@ -1,4 +1,4 @@
-﻿# v3 Final Results — AI-Enhanced BGP Anomaly Detection & Autonomous Mitigation
+# v3 Final Results — AI-Enhanced BGP Anomaly Detection & Autonomous Mitigation
 
 **Generated:** 2026-09-10T13:12:00Z
 **Topology:** 10-AS FRR (as65001–as65010), 18 eBGP Sessions
@@ -167,8 +167,8 @@ v3/
 │   └── bgp_real_training.jsonl       (SHA-256: 3f05be18c1e8ee7d78039fdf76784ff1ecabf8813c6bb55c69416a7638a9437b)
 ├── trained_models/
 │   ├── random_forest.joblib          (SHA-256: 4562d4adc1ac8cc9ae44ff0579fa15f11065c17f76fc24598584998a2980430e)
-│   ├── logistic_regression.joblib    (SHA-256: bed0e001dfa14b9c1d6833777f98eeff9719ea0199dc2fa59f93933c06e8b4bb)
-│   ├── scaler.joblib                 (SHA-256: 2a31142270bb34c382f6e5a0e98031d2345e69e37fcbce9c9dc7d1fe405e324c)
+│   ├── logistic_regression.joblib    (SHA-256: bed0e00173c7bdad60334acb85961ab197bee806656c420888ed723ebe8c799f)
+│   ├── scaler.joblib                 (SHA-256: 2a311422fa5a85abb62ffc3200adc8f557f0920f07e517b8f241ede7f17a9567)
 │   └── model_metadata.json
 ├── benchmark_results/
 │   ├── attack_evaluation_results.json

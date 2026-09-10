@@ -1,0 +1,4 @@
+Model / Approach,Accuracy,Macro-F1,Weighted-F1,Normal FPR
+Random Forest (Calibrated Isotonic),0.8165,0.4117,0.7696,0.0267
+Logistic Regression (Calibrated Sigmoid),0.8349,0.4283,0.7875,0.0
+Deterministic Heuristic Rules,0.8349,0.4283,0.7875,0.0

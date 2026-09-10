@@ -1,0 +1,19 @@
+{
+  "variant_id": "A1",
+  "variant_name": "BGP + Heuristics",
+  "scenario_id": "S6",
+  "trial_id": "T02",
+  "seed": 2060,
+  "detected": true,
+  "mttd_sec": 0.05,
+  "mitigated": true,
+  "mttm_sec": 0.1,
+  "msr_percent": 100.0,
+  "applied_loc_pref": 50,
+  "applied_community": null,
+  "rib_verified": true,
+  "rollback_verified": false,
+  "failure_code": null,
+  "action_desc": "Deprioritize (LocalPref 50)",
+  "min_trust_score": 0.0
+}
