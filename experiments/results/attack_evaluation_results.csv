@@ -1,4 +1,4 @@
-Scenario_ID,Scenario_Name,Configuration,Mode,Detected,MTTD_sec,MTTM_sec,PDR_Percent,Action,Precision,Recall,F1_Score
+Scenario_ID,Scenario_Name,Configuration,Mode,Detected,MTTD_sec,MTTM_sec,MSR_Percent,Action,Precision,Recall,F1_Score
 S1,Synthetic Direct Prefix Hijack,Standard BGP,Protocol Standard Baseline,False,N/A (No Detection Mechanism),N/A (Propagated Indefinitely),0.0,None (Propagated),0.0,0.0,0.0
 S1,Synthetic Direct Prefix Hijack,BGP + RPKI ROV,RFC 6811 Ingestion Model,True,< 0.10s (Prefix Invalidation),< 0.10s (FIB Invalidation),100.0,DROPPED (ROV Invalidation),1.0,1.0,1.0
 S1,Synthetic Direct Prefix Hijack,Behavioural Heuristics,Static Rule-Based Baseline,False,N/A,N/A,0.0,Quarantine (LocalPref 0),0.0,0.0,0.0

@@ -79,11 +79,17 @@ class BGPAttackInjector:
 
     async def inject_route_leak(self, prefix: str = "192.0.2.0/24", leaked_as_path: str = "65002 65004 65004 65001") -> bool:
         """Injects a multi-hop transit route leak utilizing the actual leaked_as_path argument."""
+        as_num = self._get_as_num(self.origin, 65007)
         logger.info(f"Injecting Route Leak on {self.origin} with path '{leaked_as_path}'...")
         cmds = [
             "configure terminal",
             "route-map RM_OUT permit 10",
             f" set as-path prepend {leaked_as_path}",
+            "exit",
+            f"router bgp {as_num}",
+            " address-family ipv4 unicast",
+            "  neighbor 10.0.37.2 route-map RM_OUT out",
+            " exit-address-family",
             "exit",
             "exit",
             "clear ip bgp * soft out"
@@ -168,13 +174,13 @@ class BGPAttackInjector:
         # Clean origin router
         await self.exec_vtysh(self.origin, [
             "configure terminal",
-            "route-map RM_OUT permit 10",
-            " no set as-path prepend",
-            "exit",
             f"router bgp {origin_as}",
             " address-family ipv4 unicast",
+            "  no neighbor 10.0.37.2 route-map RM_OUT out",
             "  network 192.0.2.0/24",
             " exit-address-family",
+            "route-map RM_OUT permit 10",
+            " no set as-path prepend",
             "exit",
             "exit",
             "clear ip bgp * soft out"

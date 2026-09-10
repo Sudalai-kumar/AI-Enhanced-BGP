@@ -2,9 +2,9 @@
 Live Closed-Loop Validation Experiment on 10-AS Topology:
 1. Starts Autonomous Controller on Edge Defender (as65003) in background task.
 2. Observes steady-state Normal operation (Trust=1.00, LP=100).
-3. Injects Rogue Prefix Hijack on as65010 for 192.0.2.0/24.
+3. Injects Rogue Prefix Hijack on as65010 for 192.0.2.0/25.
 4. Records Autonomous Quarantine & no-export application (MTTD & MTTM).
-5. Confirms with neighbor as65008 that 192.0.2.0/24 is NOT leaked/propagated.
+5. Confirms on Edge Defender as65003 that 192.0.2.0/25 is quarantined (LP=0, no-export).
 6. Restores legitimate Origin AS 65007.
 7. Observes recovery streak and Autonomous Rollback to LocalPref 100.
 """
@@ -64,6 +64,7 @@ async def test_full_lifecycle_async():
     mttd = None
     mttm = None
     quarantined = False
+    rib_quarantine_confirmed = False
     rolled_back = False
 
     try:
@@ -98,10 +99,16 @@ async def test_full_lifecycle_async():
                     print(f"[+] Anomaly Quarantined (MTTM) in {mttm:.3f}s! Policy: LP={cur_lp}, Community={cur_comm}")
                     break
 
-        # Phase 3: Verify downstream isolation
+        # Phase 3: Verify downstream isolation & RIB state
         print("\n--- PHASE 3: Verifying RIB Quarantine & Outbound Isolation ---")
         code, out, _ = run_vtysh("as65003", ["show bgp ipv4 unicast 192.0.2.0/25"])
         print(f"AS65003 BGP entry for 192.0.2.0/25:\n{out.strip()}")
+        out_lower = out.lower()
+        rib_quarantine_confirmed = (code == 0) and ("localpref 0" in out_lower or "locprf 0" in out_lower) and ("no-export" in out_lower)
+        if rib_quarantine_confirmed:
+            print("[+] Programmatic RIB Verification: PASS (LocalPref 0 and Community no-export confirmed in FRR RIB)")
+        else:
+            print("[-] Programmatic RIB Verification: FAIL")
 
         # Phase 4: Clean attack and verify recovery
         print("\n--- PHASE 4: Restoring Clean Baseline (Removing Rogue Announcement) ---")
@@ -128,10 +135,10 @@ async def test_full_lifecycle_async():
     print("=" * 75)
     print(f"1. Detection Latency (MTTD):               {f'{mttd:.3f}s' if mttd else 'FAILED'}")
     print(f"2. Mitigation Latency (MTTM):              {f'{mttm:.3f}s' if mttm else 'FAILED'}")
-    print(f"3. Dual Quarantine (LP 0 + no-export):     {'PASS' if quarantined else 'FAIL'}")
+    print(f"3. Dual Quarantine (LP 0 + no-export):     {'PASS' if (quarantined and rib_quarantine_confirmed) else 'FAIL'}")
     print(f"4. Autonomous Rollback to LP 100:          {'PASS' if rolled_back else 'FAIL'}")
     print("=" * 75)
-    return quarantined and (mttd is not None)
+    return quarantined and rib_quarantine_confirmed and rolled_back and (mttd is not None)
 
 
 if __name__ == "__main__":

@@ -65,7 +65,7 @@ class ComparativeEvaluator:
 
         mttd_trials = []
         mttm_trials = []
-        pdr_trials = []
+        msr_trials = []
         
         y_true_stream = []
         y_pred_ai_stream = []
@@ -149,7 +149,7 @@ class ComparativeEvaluator:
             if it_mttm is not None:
                 mttm_trials.append(it_mttm)
 
-            pdr_trials.append(100.0 if mitigated else (50.0 if is_flap else 0.0))
+            msr_trials.append(100.0 if mitigated else (50.0 if is_flap else 0.0))
 
             await cleanup_fn()
             await asyncio.sleep(0.3)
@@ -163,7 +163,7 @@ class ComparativeEvaluator:
             mttd_mean = mttd_std = mttd_med = mttd_p95 = None
             mttm_mean = mttm_std = mttm_med = mttm_p95 = None
 
-        pdr_mean, _, _, _ = BenchmarkMetricsCalculator.aggregate_trials(pdr_trials)
+        msr_mean, _, _, _ = BenchmarkMetricsCalculator.aggregate_trials(msr_trials)
         ai_metrics = BenchmarkMetricsCalculator.compute_classification_metrics(y_true_stream, y_pred_ai_stream)
         heur_metrics = BenchmarkMetricsCalculator.compute_classification_metrics(y_true_stream, y_pred_heur_stream)
 
@@ -173,7 +173,7 @@ class ComparativeEvaluator:
             "detected": False,
             "mttd_sec": "N/A (No Detection Mechanism)",
             "mttm_sec": "N/A (Propagated Indefinitely)",
-            "pdr_percent": 50.0 if is_flap else 0.0,
+            "msr_percent": 50.0 if is_flap else 0.0,
             "action": "None (Propagated)",
             "precision": 0.0,
             "recall": 0.0,
@@ -189,7 +189,7 @@ class ComparativeEvaluator:
                 "detected": False,
                 "mttd_sec": "N/A (Out of Scope)",
                 "mttm_sec": "N/A (Out of Scope)",
-                "pdr_percent": 0.0,
+                "msr_percent": 0.0,
                 "action": "ACCEPTED (Out of Scope)",
                 "precision": "N/A",
                 "recall": "N/A (Out of Scope)",
@@ -202,7 +202,7 @@ class ComparativeEvaluator:
                 "detected": True,
                 "mttd_sec": "< 0.10s (Prefix Invalidation)",
                 "mttm_sec": "< 0.10s (FIB Invalidation)",
-                "pdr_percent": 100.0,
+                "msr_percent": 100.0,
                 "action": "DROPPED (ROV Invalidation)",
                 "precision": 1.0,
                 "recall": 1.0,
@@ -215,7 +215,7 @@ class ComparativeEvaluator:
                 "detected": False,
                 "mttd_sec": "N/A",
                 "mttm_sec": "N/A",
-                "pdr_percent": 0.0,
+                "msr_percent": 0.0,
                 "action": "ACCEPTED",
                 "precision": 0.0,
                 "recall": 0.0,
@@ -230,7 +230,7 @@ class ComparativeEvaluator:
             "detected": heur_detected,
             "mttd_sec": 0.50 if heur_detected else "N/A",
             "mttm_sec": 0.60 if heur_detected else "N/A",
-            "pdr_percent": 92.0 if heur_detected else 0.0,
+            "msr_percent": 92.0 if heur_detected else 0.0,
             "action": "Quarantine (LocalPref 0)" if expected_class in (2, 3) else "Deprioritize (LocalPref 80)",
             "precision": heur_metrics["precision"],
             "recall": heur_metrics["recall"],
@@ -250,7 +250,7 @@ class ComparativeEvaluator:
             "mttm_std": mttm_std,
             "mttm_median": mttm_med,
             "mttm_p95": mttm_p95,
-            "pdr_percent": pdr_mean,
+            "msr_percent": msr_mean,
             "action": observed_final_action if ai_detected else "None (Unmitigated)",
             "precision": ai_metrics["precision"],
             "recall": ai_metrics["recall"],
@@ -322,14 +322,14 @@ class ComparativeEvaluator:
         out_csv = os.path.join(RESULTS_DIR, "attack_evaluation_results.csv")
         with open(out_csv, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["Scenario_ID", "Scenario_Name", "Configuration", "Mode", "Detected", "MTTD_sec", "MTTM_sec", "PDR_Percent", "Action", "Precision", "Recall", "F1_Score"])
+            writer.writerow(["Scenario_ID", "Scenario_Name", "Configuration", "Mode", "Detected", "MTTD_sec", "MTTM_sec", "MSR_Percent", "Action", "Precision", "Recall", "F1_Score"])
             for sc in results:
                 for cfg_key in ["standard_bgp", "rpki_rov", "heuristics", "proposed_ai"]:
                     c = sc[cfg_key]
                     writer.writerow([
                         sc["scenario_id"], sc["scenario_name"], c["config"], c.get("mode", "Evaluation"),
                         c["detected"], c.get("mttd_sec", "N/A"), c.get("mttm_sec", "N/A"),
-                        c.get("pdr_percent", "N/A"), c.get("action"),
+                        c.get("msr_percent", "N/A"), c.get("action"),
                         c.get("precision", "N/A"), c.get("recall", "N/A"), c.get("f1", "N/A")
                     ])
 
