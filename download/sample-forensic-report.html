@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BGP Forensic Report · 192.0.2.0/24 · run #21</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #020617; color: #e2e8f0; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 60px; }
+  header { border: 1px solid #1e293b; border-radius: 10px; padding: 18px 20px; background: linear-gradient(135deg, #0f172a, #020617); margin-bottom: 20px; }
+  h1 { margin: 0 0 4px; font-size: 17px; letter-spacing: 0.02em; }
+  h1 .accent { color: #34d399; }
+  .sub { color: #64748b; font-size: 10.5px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 20px 0 26px; }
+  .kpi { border: 1px solid #1e293b; border-radius: 8px; background: #0f172a; padding: 12px 14px; }
+  .kpi-v { font-size: 19px; font-weight: 700; }
+  .kpi-l { color: #64748b; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+  h2 { font-size: 12.5px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin: 26px 0 10px; border-bottom: 1px solid #1e293b; padding-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; border: 1px solid #1e293b; border-radius: 8px; overflow: hidden; }
+  th { background: #0f172a; color: #64748b; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; text-align: left; padding: 7px 10px; }
+  td { padding: 6px 10px; border-top: 1px solid #0f172a; color: #cbd5e1; }
+  tr:hover td { background: #0f172a80; }
+  .c { text-align: center; }
+  .dim { color: #475569; }
+  .ok { color: #34d399; } .mid { color: #fbbf24; } .bad { color: #f87171; }
+  .pill { display: inline-block; border: 1px solid; border-radius: 999px; padding: 1px 8px; font-size: 10px; }
+  footer { margin-top: 30px; color: #475569; font-size: 9.5px; line-height: 1.7; }
+  @media print { body { background: #fff; color: #111; } .kpi, table, header { border-color: #ccc; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>BGP Forensic Report · <span class="accent">192.0.2.0/24</span></h1>
+    <div class="sub">
+      run #21 · S2 Sub-Prefix Hijack (/25) · 
+      <span class="pill" style="color:#22d3ee;border-color:#22d3ee55">mitigated</span>
+      · exported 2026-09-11 16:09:43 UTC · sim clock t=15860s
+    </div>
+  </header>
+
+  <div class="kpis">
+    
+    <div class="kpi"><div class="kpi-v" style="color:#fbbf24">5s</div><div class="kpi-l">MTTD</div></div>
+    
+    <div class="kpi"><div class="kpi-v" style="color:#fb923c">10s</div><div class="kpi-l">MTTM</div></div>
+    
+    <div class="kpi"><div class="kpi-v" style="color:#e879f9">15s</div><div class="kpi-l">dwell (inject→mitigate)</div></div>
+    
+    <div class="kpi"><div class="kpi-v" style="color:#34d399">✓ mitigated</div><div class="kpi-l">MSR</div></div>
+    
+    <div class="kpi"><div class="kpi-v" style="color:#22d3ee">✓</div><div class="kpi-l">RIB verified</div></div>
+    
+    <div class="kpi"><div class="kpi-v" style="color:#34d399">0.975</div><div class="kpi-l">trust τ (final)</div></div>
+    
+    <div class="kpi"><div class="kpi-v" style="color:#94a3b8">Quarantine (LocalPref 0 + no-export)</div><div class="kpi-l">policy applied</div></div>
+    
+    <div class="kpi"><div class="kpi-v" style="color:#94a3b8">24 τ · 6 events · 2 commits</div><div class="kpi-l">samples</div></div>
+  </div>
+
+  <h2>Defense Comparison (this run)</h2>
+  <table>
+    <thead><tr><th>192.0.2.0/24</th><th class="c">Standard BGP</th><th class="c">RPKI ROV</th><th class="c">Heuristics</th><th class="c">AI Control Plane</th></tr></thead>
+    <tbody><tr><td><b>S2</b> · ground truth class 3</td><td class="c bad">blind</td><td class="c bad">blind</td><td class="c mid">5s</td><td class="c ok">5s</td></tbody>
+  </table>
+
+  <h2>Trust Trajectory (τ over time, policy tiers marked)</h2>
+  
+  <svg viewBox="0 0 720 170" role="img" aria-label="trust trajectory" style="width:100%;height:auto;border:1px solid #1e293b;border-radius:8px;background:#0f172a">
+    <text x="28" y="153.0" text-anchor="end" font-size="8" fill="#475569">0.00</text><text x="28" y="118.0" text-anchor="end" font-size="8" fill="#475569">0.25</text><text x="28" y="76.0" text-anchor="end" font-size="8" fill="#475569">0.55</text><text x="28" y="34.0" text-anchor="end" font-size="8" fill="#475569">0.85</text><text x="28" y="13.0" text-anchor="end" font-size="8" fill="#475569">1.00</text>
+    <line x1="34" y1="31.000000000000004" x2="710" y2="31.000000000000004" stroke="#34d399" stroke-opacity="0.35" stroke-dasharray="4 4"/><text x="710" y="28.000000000000004" text-anchor="end" font-size="8" fill="#34d399" fill-opacity="0.7">0.85</text><line x1="34" y1="73" x2="710" y2="73" stroke="#fbbf24" stroke-opacity="0.35" stroke-dasharray="4 4"/><text x="710" y="70" text-anchor="end" font-size="8" fill="#fbbf24" fill-opacity="0.7">0.55</text><line x1="34" y1="115" x2="710" y2="115" stroke="#fb923c" stroke-opacity="0.35" stroke-dasharray="4 4"/><text x="710" y="112" text-anchor="end" font-size="8" fill="#fb923c" fill-opacity="0.7">0.25</text>
+    <polygon points="34,150 34.0,21.2 63.4,24.0 92.8,26.8 122.2,29.6 151.6,49.2 181.0,68.8 210.3,88.4 239.7,108.0 269.1,124.8 298.5,124.8 327.9,113.6 357.3,102.4 386.7,91.2 416.1,80.0 445.5,68.8 474.9,57.6 504.3,46.4 533.7,35.2 563.0,24.0 592.4,14.2 621.8,14.2 651.2,14.2 680.6,14.2 710.0,14.2 710.0,150" fill="url(#tgrad)" fill-opacity="0.25"/>
+    <polyline points="34.0,21.2 63.4,24.0 92.8,26.8 122.2,29.6 151.6,49.2 181.0,68.8 210.3,88.4 239.7,108.0 269.1,124.8 298.5,124.8 327.9,113.6 357.3,102.4 386.7,91.2 416.1,80.0 445.5,68.8 474.9,57.6 504.3,46.4 533.7,35.2 563.0,24.0 592.4,14.2 621.8,14.2 651.2,14.2 680.6,14.2 710.0,14.2" fill="none" stroke="#38bdf8" stroke-width="1.5"/>
+    <circle cx="269.1304347826087" cy="124.80000000000001" r="3" fill="#f87171"/>
+    <text x="275.1304347826087" y="118.80000000000001" font-size="8" fill="#f87171">min 0.18</text>
+    <circle cx="710" cy="14.200000000000003" r="3.5" fill="#34d399"/>
+    <text x="650" y="8.200000000000003" font-size="8" fill="#34d399">τ 0.97</text>
+    <text x="34" y="164" font-size="8" fill="#475569">t=15785s</text>
+    <text x="710" y="164" text-anchor="end" font-size="8" fill="#475569">t=15900s</text>
+    <defs><linearGradient id="tgrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs>
+  </svg>
+
+  <h2>Run Lifecycle</h2>
+  <svg viewBox="0 0 720 58" role="img" aria-label="run lifecycle timeline" style="width:100%;height:auto;border:1px solid #1e293b;border-radius:8px;background:#0f172a">
+    <line x1="70" y1="25" x2="650" y2="25" stroke="#334155" stroke-width="1"/>
+    <rect x="70" y="18" width="193.33333333333331" height="14" rx="3" fill="#fbbf24" fill-opacity="0.55"/><rect x="263.3333333333333" y="18" width="386.6666666666667" height="14" rx="3" fill="#fb923c" fill-opacity="0.55"/>
+    <line x1="70" y1="14" x2="70" y2="36" stroke="#fbbf24"/><circle cx="70" cy="14" r="3" fill="#fbbf24"/><text x="50" y="10" font-size="8" fill="#fbbf24">injected 0s</text><line x1="263.3333333333333" y1="14" x2="263.3333333333333" y2="36" stroke="#fb923c"/><circle cx="263.3333333333333" cy="14" r="3" fill="#fb923c"/><text x="243.33333333333331" y="10" font-size="8" fill="#fb923c">detected 5s</text><line x1="650" y1="14" x2="650" y2="36" stroke="#ef4444"/><circle cx="650" cy="14" r="3" fill="#ef4444"/><text x="630" y="10" font-size="8" fill="#ef4444">mitigated 15s</text>
+    <text x="62" y="50" text-anchor="end" font-size="8" fill="#475569">t=15785s</text>
+    <text x="658" y="50" font-size="8" fill="#475569">t=15800s</text>
+  </svg>
+
+  <h2>Feature Vector (final observation)</h2>
+  <table><thead><tr><th>Behavioral Feature</th><th class="c">Value</th></tr></thead><tbody><tr><td>as_path_len</td><td class="c">3</td></tr><tr><td>as_path_edit_distance</td><td class="c">2</td></tr><tr><td>origin_as_change</td><td class="c">1</td></tr><tr><td>prefix_mask_len</td><td class="c">25</td></tr><tr><td>announcements_per_minute</td><td class="c">6</td></tr><tr><td>flap_count_5min</td><td class="c">4</td></tr><tr><td>loc_pref_current</td><td class="c">0</td></tr><tr><td>route_age_seconds</td><td class="c">45</td></tr><tr><td>valley_free_violation</td><td class="c">0</td></tr><tr><td>neighbor_diversity</td><td class="c">2</td></tr></tbody></table>
+
+  <h2>Event Timeline (6 prefix events, newest first, max 60)</h2>
+  <table>
+    <thead><tr><th class="c">t</th><th class="c">level</th><th class="c">source</th><th>message</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="c">15850s</td>
+        <td class="c" style="color:#34d399">success</td>
+        <td class="c">rollback</td>
+        <td>Autonomous rollback complete — LocalPref restored to 100 after 3 sustained healthy ticks.</td>
+      </tr>
+      <tr>
+        <td class="c">15805s</td>
+        <td class="c" style="color:#38bdf8">info</td>
+        <td class="c">shadow</td>
+        <td>Candidate Soft Deprioritization (LocalPref 80) staged in shadow queue (dwell time not met).</td>
+      </tr>
+      <tr>
+        <td class="c">15800s</td>
+        <td class="c" style="color:#34d399">success</td>
+        <td class="c">metrics</td>
+        <td>Anomaly mitigated (MTTM) in 10s — Quarantine (LocalPref 0 + no-export).</td>
+      </tr>
+      <tr>
+        <td class="c">15795s</td>
+        <td class="c" style="color:#f87171">danger</td>
+        <td class="c">policy</td>
+        <td>[192.0.2.0/25] Quarantine (LocalPref 0 + no-export) applied via immediate-quarantine path.</td>
+      </tr>
+      <tr>
+        <td class="c">15790s</td>
+        <td class="c" style="color:#f87171">danger</td>
+        <td class="c">detection</td>
+        <td>Anomaly detected on 192.0.2.0/25: Prefix Hijack (trust 0.32) — MTTD 5s.</td>
+      </tr>
+      <tr>
+        <td class="c">15785s</td>
+        <td class="c" style="color:#fbbf24">warn</td>
+        <td class="c">attack</td>
+        <td>Rogue announcement for 192.0.2.0/25 observed — sub-prefix of 192.0.2.0/24 (longest-match capture).</td>
+      </tr></tbody>
+  </table>
+
+  <h2>RIB Commit Audit (2 entries)</h2>
+  <table>
+    <thead><tr><th class="c">t</th><th class="c">LP</th><th class="c">community</th><th class="c">attempts</th><th class="c">outcome</th><th>action</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="c">15850s</td>
+        <td class="c">100</td>
+        <td class="c">—</td>
+        <td class="c">1×</td>
+        <td class="c" style="color:#34d399">verified</td>
+        <td>Rollback</td>
+      </tr>
+      <tr>
+        <td class="c">15795s</td>
+        <td class="c">0</td>
+        <td class="c">no-export</td>
+        <td class="c">1×</td>
+        <td class="c" style="color:#34d399">verified</td>
+        <td>Quarantine</td>
+      </tr></tbody>
+  </table>
+
+  <footer>
+    Generated by the BGP simulation web app (AI-Enhanced-BGP replica) · per-prefix forensic export from the drill-down
+    console · trust tiers: τ ≥ 0.85 normal · 0.55-0.85 suspicious (LP 80) · 0.25-0.55 leak (LP 50) · &lt; 0.25 hijack
+    (LP 0 + no-export) · MTTD = injection → detection · MTTM = detection → verified mitigation · dwell = injection → mitigation.
+  </footer>
+</div>
+</body>
+</html>

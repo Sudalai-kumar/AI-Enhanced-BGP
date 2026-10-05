@@ -1,0 +1,57 @@
+// Prisma schema for the AI-Enhanced BGP Simulation
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Saved simulation configuration presets (operator-created)
+model SimConfigPreset {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  variant   String? // A0-A4 origin or "custom"
+  config    String // JSON SimConfig
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Persisted benchmark run records (synced from the engine)
+model SimRunRecord {
+  id           String   @id @default(cuid())
+  runId        Int
+  scenarioId   String
+  scenarioName String
+  variantLabel String? // config variant at run time
+  mttd         Float?
+  mttm         Float?
+  msr          Boolean  @default(false)
+  ribVerified  Boolean  @default(false)
+  appliedPolicy String
+  phase        String   @default("injected")
+  groundTruth  Int      @default(0)
+  detectedClass Int?
+  comparison   String // JSON comparison matrix
+  createdAt    DateTime @default(now())
+}

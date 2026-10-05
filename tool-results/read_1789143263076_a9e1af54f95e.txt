@@ -1,0 +1,393 @@
+     1→   430→   430→                  <kbd className="px-2 py-1 rounded border border-slate-700 bg-slate-950 text-emerald-300 text-[10px] min-w-12 text-center">{k}</kbd>
+     2→   431→   431→                  <span className="text-slate-400">{d}</span>
+     3→   432→   432→                </div>
+     4→   433→   433→              ))}
+     5→   434→   434→            </div>
+     6→   435→   435→            <Button size="sm" onClick={() => setShowShortcuts(false)} className="mt-4 w-full h-7 text-[11px] font-mono bg-slate-800 hover:bg-slate-700 text-slate-200">close</Button>
+     7→   436→   436→          </div>
+     8→   437→   437→        </div>
+     9→   438→   438→      )}
+    10→   439→   439→
+    11→   440→   440→      {/* Main */}
+    12→   441→   441→      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 py-4 min-w-0">
+    13→   442→   442→        {!state ? (
+    14→   443→   443→          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+    15→   444→   444→            <div className="relative">
+    16→   445→   445→              <Layers className="h-10 w-10 text-slate-700 animate-pulse" />
+    17→   446→   446→              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+    18→   447→   447→            </div>
+    19→   448→   448→            <p className="text-sm font-mono text-slate-500">connecting to BGP simulation engine…</p>
+    20→   449→   449→            <p className="text-[11px] font-mono text-slate-600">{connected ? 'handshaking telemetry stream' : 'engine offline — retrying'}</p>
+    21→   450→   450→            <div className="w-full max-w-md space-y-2 mt-2" aria-hidden="true">
+    22→   451→   451→              <div className="h-2.5 rounded bg-slate-900 overflow-hidden"><div className="h-full w-2/3 rounded bg-slate-800 animate-pulse" /></div>
+    23→   452→   452→              <div className="h-2.5 rounded bg-slate-900 overflow-hidden"><div className="h-full w-5/6 rounded bg-slate-800 animate-pulse" style={{ animationDelay: '120ms' }} /></div>
+    24→   453→   453→              <div className="h-2.5 rounded bg-slate-900 overflow-hidden"><div className="h-full w-1/2 rounded bg-slate-800 animate-pulse" style={{ animationDelay: '240ms' }} /></div>
+    25→   454→   454→            </div>
+    26→   455→   455→          </div>
+    27→   456→   456→        ) : (
+    28→   457→   457→          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    29→   458→   458→            <TabsList className="bg-slate-900 border border-slate-800 h-9 w-full justify-start overflow-x-auto scrollbar-none rounded-md">
+    30→   459→   459→              <TabsTrigger value="control" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-slate-800 text-slate-300 gap-1.5 focus-visible:ring-1 focus-visible:ring-emerald-600">
+    31→   460→   460→                <SlidersHorizontal className="h-3 w-3 hidden sm:inline-block" /> CONTROL ROOM
+    32→   461→   461→                {state.activeRun && (
+    33→   462→   462→                  <span
+    34→   463→   463→                    className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-red-900 bg-red-950/60 text-[8.5px] text-red-300 leading-none"
+    35→   464→   464→                    aria-label="attack active"
+    36→   465→   465→                  >
+    37→   466→   466→                    <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+    38→   467→   467→                    <span className="hidden sm:inline">{state.activeRun.scenarioId}</span>
+    39→   468→   468→                  </span>
+    40→   469→   469→                )}
+    41→   470→   470→              </TabsTrigger>
+    42→   471→   471→              <TabsTrigger value="analytics" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-slate-800 text-slate-300 gap-1.5 focus-visible:ring-1 focus-visible:ring-emerald-600">
+    43→   472→   472→                <BarChart3 className="h-3 w-3 hidden sm:inline-block" /> ANALYTICS
+    44→   473→   473→              </TabsTrigger>
+    45→   474→   474→              <TabsTrigger value="benchmark" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-slate-800 text-slate-300 gap-1.5 focus-visible:ring-1 focus-visible:ring-emerald-600">
+    46→   475→   475→                <Trophy className="h-3 w-3 hidden sm:inline-block" /> BENCHMARK
+    47→   476→   476→                {['arm-a', 'run-a', 'arm-b', 'run-b'].includes(ablation.phase) && (
+    48→   477→   477→                  <span
+    49→   478→   478→                    className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-violet-800 bg-violet-950/60 text-[8.5px] text-violet-300 leading-none"
+    50→   479→   479→                    aria-label="ablation experiment running"
+    51→   480→   480→                    title={`A/B experiment running — ${ablation.phase}`}
+    52→   481→   481→                  >
+    53→   482→   482→                    <span className="w-1 h-1 rounded-full bg-violet-400 animate-pulse" />
+    54→   483→   483→                    <span className="hidden sm:inline">A/B</span>
+    55→   484→   484→                  </span>
+    56→   485→   485→                )}
+    57→   486→   486→                {chaos.phase === 'running' && (
+    58→   487→   487→                  <span
+    59→   488→   488→                    className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-amber-700 bg-amber-950/60 text-[8.5px] text-amber-300 leading-none"
+    60→   489→   489→                    aria-label="chaos drill running"
+    61→   490→   490→                    title={`Chaos drill running — round ${chaos.current}/${chaos.totalRounds}`}
+    62→   491→   491→                  >
+    63→   492→   492→                    <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
+    64→   493→   493→                    <span className="hidden sm:inline">CHAOS {Math.min(chaos.current, chaos.totalRounds)}/{chaos.totalRounds}</span>
+    65→   494→   494→                  </span>
+    66→   495→   495→                )}
+    67→   496→   496→                {state.metrics.totalRuns > 0 && !['arm-a', 'run-a', 'arm-b', 'run-b'].includes(ablation.phase) && chaos.phase !== 'running' && (
+    68→   497→   497→                  <span className="px-1.5 py-px rounded-full border border-slate-700 bg-slate-950/60 text-[8.5px] text-slate-400 leading-none tabular-nums">
+    69→   498→   498→                    {state.metrics.totalRuns}
+    70→   499→   499→                  </span>
+    71→   500→   500→                )}
+    72→   501→   501→              </TabsTrigger>
+    73→   502→   502→              <TabsTrigger value="copilot" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-violet-900/60 text-violet-200 gap-1.5 data-[state=active]:text-violet-100 focus-visible:ring-1 focus-visible:ring-violet-500">
+    74→   503→   503→                <Sparkles className="h-3 w-3 hidden sm:inline-block" /> AI COPILOT
+    75→   504→   504→                <span className="hidden lg:inline-block w-1 h-1 rounded-full bg-violet-400 animate-pulse" />
+    76→   505→   505→              </TabsTrigger>
+    77→   506→   506→              <TabsTrigger value="docs" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-slate-800 text-slate-300 gap-1.5 focus-visible:ring-1 focus-visible:ring-emerald-600">
+    78→   507→   507→                <BookOpen className="h-3 w-3 hidden sm:inline-block" /> ARCHITECTURE
+    79→   508→   508→              </TabsTrigger>
+    80→   509→   509→            </TabsList>
+    81→   510→   510→
+    82→   511→   511→            {/* CONTROL ROOM */}
+    83→   512→   512→            <TabsContent value="control" className="mt-3">
+    84→   513→   513→              <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr_340px] gap-4 items-start">
+    85→   514→   514→                <div className="xl:sticky xl:top-28 max-h-[calc(100vh-8rem)] overflow-y-auto pr-1 scrollbar-thin">
+    86→   515→   515→                  <ConfigDiff config={state.config} variantLabel={variantLabel} onResetConfig={resetConfig} />
+    87→   516→   516→                  <div className="mt-3">
+    88→   517→   517→                    <ControlCenter
+    89→   518→   518→                      config={state.config}
+    90→   519→   519→                      onUpdate={updateConfig}
+    91→   520→   520→                      onPreset={applyPreset}
+    92→   521→   521→                      onResetConfig={resetConfig}
+    93→   522→   522→                      onLoadPreset={(cfg) => {
+    94→   523→   523→                        updateConfig(cfg);
+    95→   524→   524→                        toast({ title: 'Preset loaded', description: 'Configuration applied to the live simulation engine.' });
+    96→   525→   525→                      }}
+    97→   526→   526→                    />
+    98→   527→   527→                  </div>
+    99→   528→   528→                </div>
+   100→   529→   529→
+   101→   530→   530→                <div className="space-y-4 min-w-0">
+   102→   531→   531→                  <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3 panel-accent">
+   103→   532→   532→                    <div className="flex items-center justify-between mb-1">
+   104→   533→   533→                      <span className="text-xs font-semibold text-slate-200">10-AS Multi-Tier Topology</span>
+   105→   534→   534→                      <span className="text-[10px] font-mono text-slate-500">
+   106→   535→   535→                        defender: AS{state.config.global.defenderAs} · 18 eBGP sessions
+   107→   536→   536→                      </span>
+   108→   537→   537→                    </div>
+   109→   538→   538→                    <TopologyGraph
+   110→   539→   539→                      nodes={state.nodes}
+   111→   540→   540→                      edges={state.edges}
+   112→   541→   541→                      defenderAs={state.config.global.defenderAs}
+   113→   542→   542→                      attackPath={(() => {
+   114→   543→   543→                        if (!activeRun || !['injected', 'detected', 'mitigated'].includes(activeRun.phase)) return null;
+   115→   544→   544→                        const scenario = ATTACK_SCENARIOS.find((s) => s.id === activeRun.scenarioId);
+   116→   545→   545→                        const route: RouteSnapshot | undefined = scenario
+   117→   546→   546→                          ? state.routes[scenario.prefix]
+   118→   547→   547→                          : Object.values(state.routes).find(
+   119→   548→   548→                              (r) => r.route.active && r.status !== 'normal' && !r.underOverride,
+   120→   549→   549→                            ) ?? Object.values(state.routes).find((r) => r.status === 'hijack' || r.status === 'leak');
+   121→   550→   550→                        if (!route || !route.route.active) return null;
+   122→   551→   551→                        const asns = route.route.asPath.split(/\s+/).map(Number).filter((n) => Number.isFinite(n) && n > 0);
+   123→   552→   552→                        if (asns.length < 2) return null;
+   124→   553→   553→                        return { asnPath: asns, prefix: route.route.prefix, scenarioId: activeRun.scenarioId, phase: activeRun.phase };
+   125→   554→   554→                      })()}
+   126→   555→   555→                    />
+   127→   556→   556→                  </div>
+   128→   557→   557→
+   129→   558→   558→                  <div>
+   130→   559→   559→                    <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+   131→   560→   560→                      <div className="flex items-center gap-2">
+   132→   561→   561→                        <span className="text-xs font-semibold text-slate-200">Live RIB / Route Telemetry</span>
+   133→   562→   562→                        {(() => {
+   134→   563→   563→                          const routes = Object.values(state.routes);
+   135→   564→   564→                          const abnormal = routes.filter((r) => r.status !== 'normal' || r.underOverride).length;
+   136→   565→   565→                          if (abnormal === 0) {
+   137→   566→   566→                            return (
+   138→   567→   567→                              <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-emerald-900 bg-emerald-950/50 text-[9px] font-mono text-emerald-400 leading-none">
+   139→   568→   568→                                <span className="w-1 h-1 rounded-full bg-emerald-400" /> all stable
+   140→   569→   569→                              </span>
+   141→   570→   570→                            );
+   142→   571→   571→                          }
+   143→   572→   572→                          return (
+   144→   573→   573→                            <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-amber-900 bg-amber-950/50 text-[9px] font-mono text-amber-300 leading-none">
+   145→   574→   574→                              <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" /> {abnormal} anomalous
+   146→   575→   575→                            </span>
+   147→   576→   576→                          );
+   148→   577→   577→                        })()}
+   149→   578→   578→                      </div>
+   150→   579→   579→                      <span className="text-[10px] font-mono text-slate-500">{Object.keys(state.routes).length} prefixes · click a route for diagnostics · ⌖ for full history</span>
+   151→   580→   580→                    </div>
+   152→   581→   581→                    <RouteTable state={state} onFocusPrefix={setDrillPrefix} />
+   153→   582→   582→                  </div>
+   154→   583→   583→
+   155→   584→   584→                  <RibLogViewer state={state} onFocusPrefix={setDrillPrefix} />
+   156→   585→   585→
+   157→   586→   586→                  <RouteMapPreview config={state.config} />
+   158→   587→   587→                </div>
+   159→   588→   588→
+   160→   589→   589→                <div className="space-y-4 xl:sticky xl:top-28">
+   161→   590→   590→                  <AttackPanel
+   162→   591→   591→                    activeScenarioId={activeRun?.scenarioId ?? null}
+   163→   592→   592→                    activePhase={activeRun?.phase ?? null}
+   164→   593→   593→                    activeElapsedSec={
+   165→   594→   594→                      activeRun ? Math.max(0, Math.round((state?.simTime ?? 0) - activeRun.injectedAt)) : 0
+   166→   595→   595→                    }
+   167→   596→   596→                    activeRemainingSec={(() => {
+   168→   597→   597→                      if (!activeRun) return null;
+   169→   598→   598→                      const sc = ATTACK_SCENARIOS.find((s) => s.id === activeRun.scenarioId);
+   170→   599→   599→                      if (!sc) return null; // custom attack — duration not tracked in RunResult
+   171→   600→   600→                      const elapsed = Math.max(0, Math.round((state?.simTime ?? 0) - activeRun.injectedAt));
+   172→   601→   601→                      return Math.max(0, sc.defaultDurationSec - elapsed);
+   173→   602→   602→                    })()}
+   174→   603→   603→                    onInject={(id) => {
+   175→   604→   604→                      injectAttack(id);
+   176→   605→   605→                      toast({ title: `Scenario ${id} injected`, description: 'Rogue announcement propagating through the 10-AS testbed.' });
+   177→   606→   606→                    }}
+   178→   607→   607→                    onWithdraw={() => {
+   179→   608→   608→                      withdrawAttack();
+   180→   609→   609→                      toast({ title: 'Attack withdrawn', description: 'Rogue announcement removed — awaiting autonomous rollback.' });
+   181→   610→   610→                    }}
+   182→   611→   611→                    onCustom={injectCustom}
+   183→   612→   612→                  />
+   184→   613→   613→                  <div className="h-[420px] hidden xl:block">
+   185→   614→   614→                    <EventLog events={state.events} simTime={state.simTime} />
+   186→   615→   615→                  </div>
+   187→   616→   616→                </div>
+   188→   617→   617→
+   189→   618→   618→                <div className="xl:hidden col-span-full">
+   190→   619→   619→                  <EventLog events={state.events} simTime={state.simTime} />
+   191→   620→   620→                </div>
+   192→   621→   621→              </div>
+   193→   622→   622→            </TabsContent>
+   194→   623→   623→
+   195→   624→   624→            {/* ANALYTICS */}
+   196→   625→   625→            <TabsContent value="analytics" className="mt-3">
+   197→   626→   626→              <AnalyticsPanel state={state} />
+   198→   627→   627→              <div className="mt-4">
+   199→   628→   628→                <TimeTravelScrubber
+   200→   629→   629→                  key={jumpTarget ? `jump-${jumpTarget.nonce}` : 'base'}
+   201→   630→   630→                  state={state}
+   202→   631→   631→                  initialT={jumpTarget?.t ?? null}
+   203→   632→   632→                />
+   204→   633→   633→              </div>
+   205→   634→   634→              <div className="mt-4">
+   206→   635→   635→                <ScenarioDeepDive state={state} />
+   207→   636→   636→              </div>
+   208→   637→   637→            </TabsContent>
+   209→   638→   638→
+   210→   639→   639→            {/* BENCHMARK */}
+   211→   640→   640→            <TabsContent value="benchmark" className="mt-3">
+   212→   641→   641→              <BenchmarkPanel
+   213→   642→   642→                state={state}
+   214→   643→   643→                ablation={ablation}
+   215→   644→   644→                chaos={chaos}
+   216→   645→   645→                onInject={(id) => {
+   217→   646→   646→                  injectAttack(id);
+   218→   647→   647→                  toast({ title: `Scenario ${id} injected`, description: 'Rogue announcement propagating through the 10-AS testbed.' });
+   219→   648→   648→                }}
+   220→   649→   649→                onWithdraw={withdrawAttack}
+   221→   650→   650→                onStart={start}
+   222→   651→   651→                onJumpToTime={(t, label) => {
+   223→   652→   652→                  setJumpTarget({ t, nonce: Date.now() });
+   224→   653→   653→                  setActiveTab('analytics');
+   225→   654→   654→                  toast({
+   226→   655→   655→                    title: 'Time-travel jump',
+   227→   656→   656→                    description: `Scrubber moved to t=${t}s (${label}) — replay this run in the Analytics tab.`,
+   228→   657→   657→                  });
+   229→   658→   658→                }}
+   230→   659→   659→              />
+   231→   660→   660→            </TabsContent>
+   232→   661→   661→
+   233→   662→   662→            {/* AI COPILOT */}
+   234→   663→   663→            <TabsContent value="copilot" className="mt-3">
+   235→   664→   664→              <AiAssistantPanel state={state} variantLabel={variantLabel} />
+   236→   665→   665→            </TabsContent>
+   237→   666→   666→
+   238→   667→   667→            {/* ARCHITECTURE */}
+   239→   668→   668→            <TabsContent value="docs" className="mt-3">
+   240→   669→   669→              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   241→   670→   670→                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+   242→   671→   671→                  <span className="text-sm font-semibold text-slate-100">Autonomous Control-Plane Pipeline</span>
+   243→   672→   672→                  <pre className="text-[10.5px] font-mono text-slate-400 leading-relaxed whitespace-pre-wrap">{`[ Telemetry Coroutine ]  async vtysh collector
+   244→   673→   673→        │  show bgp summary + ipv4 unicast JSON
+   245→   674→   674→        ▼
+   246→   675→   675→[ 10-Feature Behavioral Extractor ]
+   247→   676→   676→  1. AS-Path Hop Count        6. Rolling 5-Min Flap Count
+   248→   677→   677→  2. AS-Path Edit Distance    7. Current Local Preference
+   249→   678→   678→  3. Origin AS Change Flag    8. True Route Maturity (Age)
+   250→   679→   679→  4. Prefix CIDR Mask Length  9. Gao-Rexford Valley-Free
+   251→   680→   680→  5. Announcements / Minute  10. Peer Neighbor Diversity
+   252→   681→   681→        │
+   253→   682→   682→        ▼
+   254→   683→   683→[ Calibrated ML + Hybrid Trust Engine ]
+   255→   684→   684→  RF 85.06% acc · τ = Σ wᵢ·tᵢ (origin 0.20, path 0.20,
+   256→   685→   685→  flap 0.15, prefix 0.15, peer 0.10, ML 0.20)
+   257→   686→   686→        │
+   258→   687→   687→        ▼
+   259→   688→   688→[ Shadow Validator & Anti-Thrashing Guard ]
+   260→   689→   689→  streak persistence + dwell time + Δ hysteresis
+   261→   690→   690→        │
+   262→   691→   691→        ▼
+   263→   692→   692→[ Dedicated Policy Actor — Atomic Route-Maps ]
+   264→   693→   693→  Normal      τ ≥ 0.85  →  LP 100
+   265→   694→   694→  Suspicious  0.55-0.80  →  LP 80   (soft)
+   266→   695→   695→  Leak        0.25-0.55  →  LP 50   (hard)
+   267→   696→   696→  Hijack      τ < 0.25   →  LP 0 + no-export (quarantine)
+   268→   697→   697→        │
+   269→   698→   698→        ▼
+   270→   699→   699→[ Two-Layer RIB Verification ]  config + best-path commit
+   271→   700→   700→        │
+   272→   701→   701→        ▼
+   273→   702→   702→[ Multi-Criteria Autonomous Rollback ]  → LP 100`}</pre>
+   274→   703→   703→                </div>
+   275→   704→   704→                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+   276→   705→   705→                  <span className="text-sm font-semibold text-slate-100">Attack Scenario Catalogue</span>
+   277→   706→   706→                  <pre className="text-[10.5px] font-mono text-slate-400 leading-relaxed whitespace-pre-wrap">{`S1  Direct Prefix Hijack     exact /24 by rogue AS65010
+   278→   707→   707→    → best-path competition w/ incumbent route
+   279→   708→   708→
+   280→   709→   709→S2  Sub-Prefix Hijack /25    more-specific deaggregation
+   281→   710→   710→    → longest-prefix match captures traffic instantly
+   282→   711→   711→
+   283→   712→   712→S3  Burst Route Flapping     churn flood from origin AS65007
+   284→   713→   713→    → damped via soft deprioritization (LP 80)
+   285→   714→   714→
+   286→   715→   715→S4  YouTube 2008 Replay      PT (AS17557) hijacks 208.65.153.0/24
+   287→   716→   716→    → sub-prefix of YouTube's /22 allocation
+   288→   717→   717→
+   289→   718→   718→S5  Google 2017 Route Leak   Rostelecom (AS12389) transit leak
+   290→   719→   719→    → valley-free violation, origin cryptographically valid
+   291→   720→   720→
+   292→   721→   721→S6  Cloudflare 2019 Leak     Allegheny (AS396531) → Verizon (AS701)
+   293→   722→   722→    → customer-to-peer leak, valid origin AS13335
+   294→   723→   723→
+   295→   724→   724→Historical defenses compared in parallel:
+   296→   725→   725→  · Standard BGP (RFC 4271)   — no detection
+   297→   726→   726→  · RPKI ROV (RFC 6811)       — origin-validity only
+   298→   727→   727→  · Behavioural heuristics     — fixed rules, ~92% PDR
+   299→   728→   728→  · AI Control Plane (this)    — closed-loop autonomous`}</pre>
+   300→   729→   729→                </div>
+   301→   730→   730→                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 lg:col-span-2">
+   302→   731→   731→                  <span className="text-sm font-semibold text-slate-100">Ablation Experiment Variants</span>
+   303→   732→   732→                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-5 gap-2">
+   304→   733→   733→                    {[
+   305→   734→   734→                      ['A0', 'Standard BGP', 'no detector · no mitigation · RFC baseline'],
+   306→   735→   735→                      ['A1', '+ Heuristics', 'rule-based detection · immediate static policy'],
+   307→   736→   736→                      ['A2', '+ ML Only', 'RF class → policy · no trust weighting'],
+   308→   737→   737→                      ['A3', '+ Trust', 'ML + 6-factor continuous trust score'],
+   309→   738→   738→                      ['A4', 'Full System', '+ shadow staging + atomic commit + rollback'],
+   310→   739→   739→                    ].map(([id, name, desc]) => (
+   311→   740→   740→                      <div key={id} className="rounded border border-slate-800 bg-slate-900/50 p-2.5 hover:border-slate-700 transition-colors">
+   312→   741→   741→                        <div className="text-[11px] font-mono font-semibold text-emerald-300">{id}</div>
+   313→   742→   742→                        <div className="text-[11px] font-semibold text-slate-200 mt-0.5">{name}</div>
+   314→   743→   743→                        <div className="text-[10px] text-slate-500 mt-1">{desc}</div>
+   315→   744→   744→                      </div>
+   316→   745→   745→                    ))}
+   317→   746→   746→                  </div>
+   318→   747→   747→                  <p className="mt-3 text-[11px] font-mono text-slate-500">
+   319→   748→   748→                    Based on the AI-Enhanced BGP research project (v3.0) — 10-AS FRR testbed, empirical telemetry training, MTTD/MTTM/MSR benchmarking.
+   320→   749→   749→                  </p>
+   321→   750→   750→                </div>
+   322→   751→   751→                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 lg:col-span-2">
+   323→   752→   752→                  <span className="text-sm font-semibold text-slate-100">Operator Tooling</span>
+   324→   753→   753→                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+   325→   754→   754→                    {[
+   326→   755→   755→                      ['NOC sound alerts', 'synthesized tones on injection, detection, quarantine and rollback — header mute toggle persists'],
+   327→   756→   756→                      ['Time-travel scrubber', 'replay any t in the Analytics tab — run bands, event markers, trust reconstruction at T'],
+   328→   757→   757→                      ['Run deep-links', 'hover a run row in Benchmark and jump its injection moment into the scrubber'],
+   329→   758→   758→                      ['Streaming AI copilot', 'token-by-token LLM analysis of live engine state (Enter to send) + markdown transcript export'],
+   330→   759→   759→                      ['Run archive exports', 'SQLite-persisted runs → styled standalone HTML report or CSV'],
+   331→   760→   760→                      ['Auto-benchmark sweep', 'sequential S1→S6 injection with per-scenario progress and abort'],
+   332→   761→   761→                      ['Keyboard control', 'Space run/pause · R reset · 1-5 tabs · ? help'],
+   333→   762→   762→                      ['Live route-map preview', 'FRR-style config generated from your sliders — copy or download .conf'],
+   334→   763→   763→                      ['RIB verification log', 'two-layer commit audit with pass-rate and retry tracking'],
+   335→   764→   764→                      ['Config diff monitor', 'live drift view of every knob vs the A4 baseline — grouped by subsystem with restore button'],
+   336→   765→   765→                      ['Trust trajectory sparklines', 'per-prefix trust history with policy-tier bands and minimum marker inside route diagnostics'],
+   337→   766→   766→                      ['Threat condition level', 'DEFCON-style L5→L1 posture indicator in the header, derived from routes and run phase'],
+   338→   767→   767→                      ['Prefix drill-down forensics', '⌖ on any route row (or RIB log prefix) opens a modal: trust decomposition τ = Σ wᵢ·tᵢ, full trajectory chart, run lifecycle timeline, per-prefix event stream and RIB audit'],
+   339→   768→   768→                      ['Attack path overlay', 'topology renders the live hijack propagation path as an animated red flow from origin toward the defender — switches to a blocked ✕ marker when quarantine commits'],
+   340→   769→   769→                      ['Ablation A/B laboratory', 'Benchmark tab: controlled experiment — same scenario under two ablation variants back-to-back with side-by-side detection/MTTD/MTTM/MSR comparison; your config is snapshotted and restored'],
+   341→   770→   770→                      ['Variant performance archive', 'Analytics tab: detection rate, MSR and mean MTTD/MTTM aggregated per variant across every run ever persisted to SQLite — the long-horizon ablation story'],
+   342→   771→   771→                      ['A/B fast modes', '2×/4× speed selector on the A/B laboratory — shortens the injected attack (60s/45s) so full experiments complete in ~15-40s real time while preserving lifecycle fidelity'],
+   343→   772→   772→                      ['Chaos drill · soak test', 'Benchmark tab: randomized scenario sequence (mixed/hijack/leak pools) fired back-to-back under your live config — per-round forensics, detection/MSR/MTTD KPIs, worst-case tracking; page-level state machine survives tab switches'],
+   344→   773→   773→                      ['Per-prefix forensic export', '⌖ drill-down modal: one-click standalone HTML forensic report — run KPIs, 4-defense comparison, inline-SVG trust trajectory with tier lines, lifecycle timeline bands, event log, RIB audit and the 10-feature vector'],
+   345→   774→   774→                    ].map(([name, desc]) => (
+   346→   775→   775→                      <div key={name} className="rounded border border-slate-800 bg-slate-900/50 p-2.5 hover:border-slate-700 transition-colors">
+   347→   776→   776→                        <div className="text-[11px] font-semibold text-slate-200">{name}</div>
+   348→   777→   777→                        <div className="text-[10px] text-slate-500 mt-1">{desc}</div>
+   349→   778→   778→                      </div>
+   350→   779→   779→                    ))}
+   351→   780→   780→                  </div>
+   352→   781→   781→                </div>
+   353→   782→   782→              </div>
+   354→   783→   783→            </TabsContent>
+   355→   784→   784→          </Tabs>
+   356→   785→   785→        )}
+   357→   786→   786→
+   358→   787→   787→        {/* per-prefix drill-down modal — reachable from route rows + RIB log */}
+   359→   788→   788→        {state && (
+   360→   789→   789→          <PrefixDrilldown state={state} prefix={drillPrefix} onClose={() => setDrillPrefix(null)} />
+   361→   790→   790→        )}
+   362→   791→   791→      </main>
+   363→   792→   792→
+   364→   793→   793→      {/* Footer */}
+   365→   794→   794→      <footer className="mt-auto border-t border-slate-800 bg-slate-950/95">
+   366→   795→   795→        <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent" aria-hidden="true" />
+   367→   796→   796→        <div className="max-w-[1600px] mx-auto px-4 py-2.5 flex items-center gap-3 flex-wrap text-[10px] font-mono text-slate-600">
+   368→   797→   797→          <span className="text-slate-400">AI-Enhanced BGP Simulation · v3.0 replica</span>
+   369→   798→   798→          <span className="hidden sm:flex items-center gap-1" aria-label="pipeline stages">
+   370→   799→   799→            {['telemetry', 'features', 'ML', 'trust', 'shadow', 'policy', 'RIB', 'rollback'].map((stage, i) => (
+   371→   800→   800→              <React.Fragment key={stage}>
+   372→   801→   801→                {i > 0 && <span className="text-slate-800">→</span>}
+   373→   802→   802→                <span className={`px-1.5 py-px rounded border ${i === 7 ? 'border-emerald-900/60 text-emerald-500/90' : 'border-slate-800 text-slate-500'}`}>
+   374→   803→   803→                  {stage}
+   375→   804→   804→                </span>
+   376→   805→   805→              </React.Fragment>
+   377→   806→   806→            ))}
+   378→   807→   807→          </span>
+   379→   808→   808→          <span className="ml-auto hidden md:flex items-center gap-2">
+   380→   809→   809→            <span className="kbd-hint" aria-hidden="true">space</span>
+   381→   810→   810→            <span className="hidden lg:inline">run</span>
+   382→   811→   811→            <span className="kbd-hint" aria-hidden="true">R</span>
+   383→   812→   812→            <span className="hidden lg:inline">reset</span>
+   384→   813→   813→            <span className="kbd-hint" aria-hidden="true">?</span>
+   385→   814→   814→            <span className="hidden lg:inline">help</span>
+   386→   815→   815→            <span className="hidden xl:inline text-slate-600">· LocalPref 100/80/50/0 + no-export · Gao-Rexford · RFC 1997/6811/9234</span>
+   387→   816→   816→          </span>
+   388→   817→   817→        </div>
+   389→   818→   818→      </footer>
+   390→   819→   819→    </div>
+   391→   820→   820→  );
+   392→   821→   821→}
+   393→   822→   822→

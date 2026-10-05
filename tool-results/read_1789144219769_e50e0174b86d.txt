@@ -1,0 +1,1003 @@
+     1→'use client';
+     2→
+     3→import React, { useEffect, useRef, useState } from 'react';
+     4→import { useBgpSim } from '@/lib/bgp-sim/client';
+     5→import { SimConfig, RunResult, SimEvent, SimState, ATTACK_SCENARIOS, RouteSnapshot } from '@/lib/bgp-sim/types';
+     6→import { playAlert, alertForEvent, primeAudioUnlock, isMuted, setMuted } from '@/lib/bgp-sim/sound';
+     7→import { TopologyGraph } from '@/components/bgp/topology-graph';
+     8→import { PrefixDrilldown } from '@/components/bgp/prefix-drilldown';
+     9→import { ControlCenter } from '@/components/bgp/control-center';
+    10→import { AttackPanel } from '@/components/bgp/attack-panel';
+    11→import { RouteTable, RouteCmd } from '@/components/bgp/route-table';
+    12→import { EventLog } from '@/components/bgp/event-log';
+    13→import { AnalyticsPanel } from '@/components/bgp/analytics';
+    14→import { BenchmarkPanel } from '@/components/bgp/benchmark';
+    15→import { AiAssistantPanel } from '@/components/bgp/ai-assistant';
+    16→import { RibLogViewer } from '@/components/bgp/rib-log';
+    17→import { RouteMapPreview } from '@/components/bgp/route-map-preview';
+    18→import { ScenarioDeepDive } from '@/components/bgp/scenario-deepdive';
+    19→import { TimeTravelScrubber } from '@/components/bgp/time-travel';
+    20→import { ConfigDiff } from '@/components/bgp/config-diff';
+    21→import { useAblationExperiment } from '@/components/bgp/ablation-lab';
+    22→import { useChaosDrill } from '@/components/bgp/chaos-drill';
+    23→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    24→import { Button } from '@/components/ui/button';
+    25→import { Badge } from '@/components/ui/badge';
+    26→import { Toaster } from '@/components/ui/toaster';
+    27→import { useToast } from '@/hooks/use-toast';
+    28→import {
+    29→  Play, Pause, RotateCcw, Radio, CircleDot, Layers, SlidersHorizontal, BarChart3,
+    30→  Trophy, BookOpen, Sparkles, Keyboard, Volume2, VolumeX,
+    31→} from 'lucide-react';
+    32→
+    33→/**
+    34→ * NOC threat-condition level (DEFCON-style): derives posture from routes +
+    35→ * active run phase. L5 all-clear → L1 active hijack quarantine.
+    36→ */
+    37→const VALID_TABS = ['control', 'analytics', 'benchmark', 'copilot', 'docs'] as const;
+    38→const PREFIX_URL_RE = /^\d{1,3}(?:\.\d{1,3}){3}\/\d{1,2}$/;
+    39→
+    40→/** read the initial deep-link (?tab=…&prefix=…) once, before first paint of state */
+    41→function readDeepLink(): { tab: string; prefix: string | null } {
+    42→  if (typeof window === 'undefined') return { tab: 'control', prefix: null };
+    43→  try {
+    44→    const params = new URLSearchParams(window.location.search);
+    45→    const tab = params.get('tab');
+    46→    const prefix = params.get('prefix');
+    47→    return {
+    48→      tab: (VALID_TABS as readonly string[]).includes(tab ?? '') ? (tab as string) : 'control',
+    49→      prefix: prefix && PREFIX_URL_RE.test(prefix) ? prefix : null,
+    50→    };
+    51→  } catch {
+    52→    return { tab: 'control', prefix: null };
+    53→  }
+    54→}
+    55→
+    56→function ThreatCondition({ state }: { state: SimState }) {
+    57→  const routes = Object.values(state.routes);
+    58→  const quarantined = routes.filter((r) => r.underOverride && r.route.locPref === 0).length;
+    59→  const anomalous = routes.filter((r) => r.status !== 'normal' || r.underOverride).length;
+    60→  const phase = state.activeRun?.phase;
+    61→
+    62→  let level = 5;
+    63→  let label = 'ALL CLEAR';
+    64→  let tone = 'border-emerald-800 text-emerald-300 bg-emerald-950/40';
+    65→  if (quarantined > 0 || phase === 'mitigated') {
+    66→    level = 1;
+    67→    label = 'QUARANTINE';
+    68→    tone = 'border-red-700 text-red-300 bg-red-950/50';
+    69→  } else if (phase === 'detected' || phase === 'injected') {
+    70→    level = 2;
+    71→    label = 'ENGAGED';
+    72→    tone = 'border-amber-700 text-amber-300 bg-amber-950/40';
+    73→  } else if (anomalous > 0) {
+    74→    level = 3;
+    75→    label = 'ELEVATED';
+    76→    tone = 'border-orange-800 text-orange-300 bg-orange-950/40';
+    77→  } else if (state.metrics.totalRuns > 0 && state.metrics.msrPercent < 100) {
+    78→    level = 4;
+    79→    label = 'GUARDED';
+    80→    tone = 'border-yellow-800 text-yellow-300 bg-yellow-950/30';
+    81→  }
+    82→
+    83→  return (
+    84→    <span
+    85→      className={`hidden sm:inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded border font-semibold transition-colors ${tone}`}
+    86→      title={`threat condition L${level} — ${label}${quarantined ? ` · ${quarantined} route(s) quarantined` : anomalous ? ` · ${anomalous} anomalous` : ''}`}
+    87→    >
+    88→      <span className="flex gap-[2px]" aria-hidden>
+    89→        {[1, 2, 3, 4, 5].map((i) => (
+    90→          <span key={i} className={`w-[3px] h-2 rounded-[1px] ${i >= level ? 'bg-current' : 'bg-slate-700/60'}`} />
+    91→        ))}
+    92→      </span>
+    93→      <span className="text-[9.5px] tracking-wider">L{level} {label}</span>
+    94→    </span>
+    95→  );
+    96→}
+    97→
+    98→function PipelineStrip({ config, running }: { config: SimConfig; running: boolean }) {
+    99→  const stages = [
+   100→    { name: 'Telemetry', on: config.telemetry.enabled, tone: 'text-sky-300 border-sky-800 bg-sky-950/40' },
+   101→    { name: '10-Features', on: true, tone: 'text-violet-300 border-violet-800 bg-violet-950/40' },
+   102→    { name: config.ml.mode === 'heuristic' ? 'Heuristic' : 'ML', on: config.ml.enabled, tone: 'text-cyan-300 border-cyan-800 bg-cyan-950/40' },
+   103→    { name: 'Trust τ', on: config.trust.enabled, tone: 'text-teal-300 border-teal-800 bg-teal-950/40' },
+   104→    { name: 'Shadow', on: config.shadow.enabled, tone: 'text-fuchsia-300 border-fuchsia-800 bg-fuchsia-950/40' },
+   105→    { name: 'Policy', on: config.policy.enabled, tone: 'text-orange-300 border-orange-800 bg-orange-950/40' },
+   106→    { name: 'RIB-Verify', on: config.ribVerification.enabled, tone: 'text-amber-300 border-amber-800 bg-amber-950/40' },
+   107→    { name: 'Rollback', on: config.rollback.enabled, tone: 'text-emerald-300 border-emerald-800 bg-emerald-950/40' },
+   108→  ];
+   109→  return (
+   110→    <div className="flex items-center gap-1.5 flex-wrap">
+   111→      {stages.map((s, i) => (
+   112→        <React.Fragment key={s.name}>
+   113→          {i > 0 && (
+   114→            <span
+   115→              className={`text-[10px] transition-colors ${running && s.on ? 'text-slate-500 animate-pulse' : 'text-slate-700'}`}
+   116→            >
+   117→              →
+   118→            </span>
+   119→          )}
+   120→          <span
+   121→            className={`text-[9.5px] font-mono px-2 py-0.5 rounded border transition-all ${s.on ? `${s.tone} shadow-sm` : 'text-slate-600 border-slate-800 bg-slate-900/40 line-through'}`}
+   122→            title={s.on ? 'enabled' : 'disabled'}
+   123→          >
+   124→            {s.name}
+   125→          </span>
+   126→        </React.Fragment>
+   127→      ))}
+   128→    </div>
+   129→  );
+   130→}
+   131→
+   132→/** Attack lifecycle progress steps: injected → detected → mitigated → rolledback */
+   133→function PhaseSteps({ phase }: { phase: RunResult['phase'] }) {
+   134→  const steps: { id: RunResult['phase']; label: string }[] = [
+   135→    { id: 'injected', label: 'injected' },
+   136→    { id: 'detected', label: 'detected' },
+   137→    { id: 'mitigated', label: 'mitigated' },
+   138→    { id: 'rolledback', label: 'rolled back' },
+   139→  ];
+   140→  const order: Record<string, number> = { idle: 0, injected: 1, detected: 2, mitigated: 3, rolledback: 4, failed: 4 };
+   141→  const current = order[phase] ?? 0;
+   142→  return (
+   143→    <div className="flex items-center gap-1">
+   144→      {steps.map((s, i) => {
+   145→        const reached = current > i + 1 || (current === i + 1);
+   146→        const isFailed = phase === 'failed' && i === steps.length - 1;
+   147→        const isCurrent = current === i + 1 && phase !== 'failed';
+   148→        return (
+   149→          <React.Fragment key={s.id}>
+   150→            {i > 0 && <span className={`text-[9px] ${reached ? 'text-slate-500' : 'text-slate-700'}`}>──</span>}
+   151→            <span
+   152→              className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${
+   153→                isFailed
+   154→                  ? 'border-red-900 text-red-400 bg-red-950/40'
+   155→                  : reached
+   156→                    ? isCurrent
+   157→                      ? 'border-amber-600 text-amber-300 bg-amber-950/50 animate-pulse'
+   158→                      : 'border-emerald-800 text-emerald-300 bg-emerald-950/40'
+   159→                    : 'border-slate-800 text-slate-600'
+   160→              }`}
+   161→            >
+   162→              {s.label}
+   163→            </span>
+   164→          </React.Fragment>
+   165→        );
+   166→      })}
+   167→    </div>
+   168→  );
+   169→}
+   170→
+   171→export default function Home() {
+   172→  const { state, connected, start, pause, reset, updateConfig, applyPreset, resetConfig, injectAttack, injectCustom, withdrawAttack } = useBgpSim();
+   173→  const { toast } = useToast();
+   174→  const [activeTab, setActiveTab] = useState<string>(() => readDeepLink().tab);
+   175→  const [showShortcuts, setShowShortcuts] = useState(false);
+   176→  const [soundOn, setSoundOn] = useState(!isMuted());
+   177→  // cross-tab deep link: jumping from Benchmark run history into the time-travel scrubber
+   178→  const [jumpTarget, setJumpTarget] = useState<{ t: number; nonce: number } | null>(null);
+   179→  // per-prefix drill-down modal (opened from route rows + RIB log) — deep-linked into ?prefix=
+   180→  const [drillPrefix, setDrillPrefix] = useState<string | null>(() => readDeepLink().prefix);
+   181→  // keyboard command routed into the RouteTable ('/' focuses the RIB search box after a cross-tab jump)
+   182→  const [routeCmd, setRouteCmd] = useState<RouteCmd>(null);
+   183→  // route-table anomalous-only filter — page-owned so the F shortcut works from any tab
+   184→  const [anomalousOnly, setAnomalousOnly] = useState(false);
+   185→
+   186→  // ablation A/B experiment state machine — page level, survives tab switches
+   187→  const ablation = useAblationExperiment({
+   188→    state,
+   189→    onApplyPreset: applyPreset,
+   190→    onUpdateConfig: updateConfig,
+   191→    onInject: injectAttack,
+   192→    onWithdraw: withdrawAttack,
+   193→    onStart: start,
+   194→  });
+   195→
+   196→  // chaos drill state machine — page level, survives tab switches
+   197→  const chaos = useChaosDrill({
+   198→    state,
+   199→    onInject: injectAttack,
+   200→    onWithdraw: withdrawAttack,
+   201→    onStart: start,
+   202→  });
+   203→
+   204→  const running = state?.running ?? false;
+   205→  const activeRun = state?.activeRun ?? null;
+   206→  // server-tracked config variant label (engine updates it on preset/edit/reset)
+   207→  const variantLabel = state?.variantLabel ?? 'A4 · Full System';
+   208→
+   209→  /** unlock Web Audio on the first user gesture (browser autoplay policy) */
+   210→  useEffect(() => primeAudioUnlock(), []);
+   211→
+   212→  /** deep-link sync — keep ?tab=…&prefix=… in the URL so views survive reload & sharing */
+   213→  useEffect(() => {
+   214→    try {
+   215→      const params = new URLSearchParams();
+   216→      if (activeTab !== 'control') params.set('tab', activeTab);
+   217→      if (drillPrefix) params.set('prefix', drillPrefix);
+   218→      const qs = params.toString();
+   219→      window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+   220→    } catch {
+   221→      /* non-browser context — ignore */
+   222→    }
+   223→  }, [activeTab, drillPrefix]);
+   224→
+   225→  /** NOC sound alerts — watch for NEW events and map them to tones */
+   226→  const events: SimEvent[] | undefined = state?.events;
+   227→  const lastEventIdRef = useRef<number>(-1);
+   228→  const prevEventsRef = useRef<SimEvent[] | undefined>(undefined);
+   229→  useEffect(() => {
+   230→    if (!events || events.length === 0) {
+   231→      lastEventIdRef.current = -1;
+   232→      prevEventsRef.current = events;
+   233→      return;
+   234→    }
+   235→    const maxId = events[events.length - 1].id;
+   236→    // first observation (or engine reset restarted ids) — baseline without sound
+   237→    if (lastEventIdRef.current === -1 || maxId < lastEventIdRef.current) {
+   238→      lastEventIdRef.current = maxId;
+   239→      prevEventsRef.current = events;
+   240→      return;
+   241→    }
+   242→    if (maxId > lastEventIdRef.current) {
+   243→      for (const e of events) {
+   244→        if (e.id > lastEventIdRef.current) {
+   245→          const tone = alertForEvent(e.source, e.level, e.message);
+   246→          if (tone) playAlert(tone);
+   247→        }
+   248→      }
+   249→      lastEventIdRef.current = maxId;
+   250→    }
+   251→    prevEventsRef.current = events;
+   252→  }, [events]);
+   253→
+   254→  /** run-completion toasts — notify when a run lands in history (reset-aware) */
+   255→  const history: RunResult[] | undefined = state?.history;
+   256→  const runGenRef = useRef(0); // bumped on engine reset (history shrink) so runIds can repeat
+   257→  const histLenRef = useRef(0);
+   258→  const seenRunKeyRef = useRef('');
+   259→  useEffect(() => {
+   260→    if (!history) return;
+   261→    if (history.length < histLenRef.current) {
+   262→      // engine reset — history restarted; runIds will repeat
+   263→      runGenRef.current += 1;
+   264→      histLenRef.current = history.length;
+   265→      seenRunKeyRef.current = '';
+   266→      return;
+   267→    }
+   268→    histLenRef.current = history.length;
+   269→    if (history.length === 0) return;
+   270→    // engine emits history newest-first — the head entry is the latest landed run
+   271→    const last = history[0];
+   272→    const key = `${runGenRef.current}:${last.runId}`;
+   273→    if (seenRunKeyRef.current === '') {
+   274→      // first observation of this generation — baseline, swallow pre-existing tail
+   275→      seenRunKeyRef.current = key;
+   276→      return;
+   277→    }
+   278→    if (key === seenRunKeyRef.current) return;
+   279→    seenRunKeyRef.current = key;
+   280→    if (last.phase === 'rolledback') {
+   281→      toast({
+   282→        title: `Run #${last.runId} · ${last.scenarioId} rolled back`,
+   283→        description: `Autonomous rollback complete — LocalPref ${last.appliedLocPref ?? 0} → ${state?.config.policy.lpNormal ?? 100} restored after sustained healthy ticks.`,
+   284→      });
+   285→    } else if (last.phase === 'failed') {
+   286→      toast({
+   287→        title: `Run #${last.runId} · ${last.scenarioId} failed`,
+   288→        description: last.detectedAt === null ? 'Attack was never detected — mitigation missed.' : 'Mitigation did not complete successfully.',
+   289→        variant: 'destructive',
+   290→      });
+   291→    } else if (last.phase === 'mitigated' || last.phase === 'detected') {
+   292→      toast({
+   293→        title: `Run #${last.runId} · ${last.scenarioId} closed (${last.phase})`,
+   294→        description: `${last.appliedPolicy || 'no override'} · MTTD ${last.mttd ?? '—'}s · MTTM ${last.mttm ?? '—'}s${last.msr ? ' · mitigated' : ''}.`,
+   295→      });
+   296→    }
+   297→  }, [history, toast]);
+   298→
+   299→  /** Keyboard shortcuts: Space run/pause · R reset · M mute · 1-5 tabs · / route search · F anomalous-only · ? help · Esc close */
+   300→  useEffect(() => {
+   301→    const onKey = (e: KeyboardEvent) => {
+   302→      const target = e.target as HTMLElement;
+   303→      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+   304→      // while the drill-down modal is open it owns the keyboard (Radix handles Esc) —
+   305→      // suppress transport shortcuts so R/F/space can't fire behind the dialog
+   306→      if (drillPrefix) {
+   307→        if (e.key === 'Escape') setShowShortcuts(false);
+   308→        return;
+   309→      }
+   310→      if (e.key === 'Escape') {
+   311→        setShowShortcuts(false);
+   312→        return;
+   313→      }
+   314→      if (e.key === ' ') {
+   315→        e.preventDefault();
+   316→        if (running) {
+   317→          pause();
+   318→        } else {
+   319→          start();
+   320→        }
+   321→      } else if (e.key.toLowerCase() === 'r') {
+   322→        reset();
+   323→        toast({ title: 'Simulation reset', description: '10-AS baseline state restored, metrics cleared.' });
+   324→      } else if (['1', '2', '3', '4', '5'].includes(e.key)) {
+   325→        const tab = ['control', 'analytics', 'benchmark', 'copilot', 'docs'][Number(e.key) - 1];
+   326→        setActiveTab(tab);
+   327→      } else if (e.key.toLowerCase() === 'm') {
+   328→        const next = !soundOn;
+   329→        setSoundOn(next);
+   330→        setMuted(!next);
+   331→      } else if (e.key === '/') {
+   332→        e.preventDefault();
+   333→        setActiveTab('control');
+   334→        setRouteCmd({ type: 'focus-search', nonce: Date.now() });
+   335→      } else if (e.key.toLowerCase() === 'f') {
+   336→        setActiveTab('control');
+   337→        setAnomalousOnly((v) => !v);
+   338→      } else if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+   339→        setShowShortcuts((s) => !s);
+   340→      }
+   341→    };
+   342→    window.addEventListener('keydown', onKey);
+   343→    return () => window.removeEventListener('keydown', onKey);
+   344→  }, [running, start, pause, reset, toast, soundOn, drillPrefix]);
+   345→  return (
+   346→    <div className="dark min-h-screen flex flex-col bg-slate-950 text-slate-200 noc-grid-bg">
+   347→      <Toaster />
+   348→
+   349→      {/* Header */}
+   350→      <header className="sticky top-0 z-40 border-b border-slate-800 bg-gradient-to-r from-slate-950 via-slate-900/80 to-slate-950 bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-slate-950/75">
+   351→        <div className="max-w-[1600px] mx-auto px-4 py-2.5 flex items-center gap-3 flex-wrap">
+   352→          <div className="flex items-center gap-2.5">
+   353→            <div className="relative">
+   354→              <Radio className="h-5 w-5 text-emerald-400" />
+   355→              <span className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ${running ? 'bg-emerald-400 animate-ping' : connected ? 'bg-amber-500' : 'bg-red-500'}`} />
+   356→            </div>
+   357→            <div>
+   358→              <h1 className="text-sm font-bold tracking-tight text-slate-50 leading-none">
+   359→                AI-Enhanced BGP <span className="text-emerald-400">Autonomous Control Plane</span>
+   360→              </h1>
+   361→              <p className="text-[10px] font-mono text-slate-500 mt-0.5">10-AS multi-tier simulation · dual defender · shadow validation · autonomous rollback</p>
+   362→            </div>
+   363→          </div>
+   364→
+   365→          <div className="ml-auto flex items-center gap-2 flex-wrap">
+   366→            {state && <PipelineStrip config={state.config} running={running} />}
+   367→            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+   368→              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border transition-colors ${connected ? 'border-emerald-800 text-emerald-300 bg-emerald-950/40' : 'border-red-800 text-red-400 bg-red-950/40'}`}>
+   369→                <CircleDot className="h-2.5 w-2.5" /> {connected ? 'LINK' : 'OFFLINE'}
+   370→              </span>
+   371→              {state && <ThreatCondition state={state} />}
+   372→              <span className="text-slate-500">t=</span>
+   373→              <span className="text-emerald-300 w-16 tabular-nums clock-glow font-semibold">{(state?.simTime ?? 0).toFixed(0)}s</span>
+   374→              <span className="text-slate-600">tick {state?.tick ?? 0}</span>
+   375→              <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-violet-900/60 text-violet-300 bg-violet-950/40">
+   376→                {variantLabel}
+   377→              </span>
+   378→            </div>
+   379→            <Button
+   380→              size="sm"
+   381→              onClick={() => (running ? pause() : start())}
+   382→              title="Space"
+   383→              className={`h-8 font-mono text-xs transition-colors ${running ? 'bg-amber-600 hover:bg-amber-500 text-black' : 'bg-emerald-600 hover:bg-emerald-500 text-black'}`}
+   384→            >
+   385→              {running ? <Pause className="h-3.5 w-3.5 mr-1" /> : <Play className="h-3.5 w-3.5 mr-1" />}
+   386→              {running ? 'PAUSE' : 'RUN'}
+   387→            </Button>
+   388→            <Button
+   389→              size="sm"
+   390→              variant="outline"
+   391→              title="R"
+   392→              onClick={() => {
+   393→                reset();
+   394→                toast({ title: 'Simulation reset', description: '10-AS baseline state restored, metrics cleared.' });
+   395→              }}
+   396→              className="h-8 font-mono text-xs border-slate-700 text-slate-300 hover:bg-slate-800"
+   397→            >
+   398→              <RotateCcw className="h-3.5 w-3.5 mr-1" /> RESET
+   399→            </Button>
+   400→            <Button
+   401→              size="sm"
+   402→              variant="outline"
+   403→              title={soundOn ? 'sound alerts on — click to mute' : 'sound alerts muted — click to enable'}
+   404→              aria-pressed={soundOn}
+   405→              aria-label="toggle sound alerts"
+   406→              onClick={() => {
+   407→                const next = !soundOn;
+   408→                setSoundOn(next);
+   409→                setMuted(!next);
+   410→                if (next) {
+   411→                  // gesture context — safe to probe the audio pipeline
+   412→                  playAlert('success');
+   413→                }
+   414→              }}
+   415→              className={`h-8 w-8 p-0 ${soundOn ? 'border-emerald-700 text-emerald-300 hover:bg-emerald-950/40' : 'border-slate-700 text-slate-500 hover:bg-slate-800'}`}
+   416→            >
+   417→              {soundOn ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+   418→            </Button>
+   419→            <Button
+   420→              size="sm"
+   421→              variant="outline"
+   422→              title="?"
+   423→              onClick={() => setShowShortcuts((s) => !s)}
+   424→              className="h-8 w-8 p-0 border-slate-700 text-slate-400 hover:bg-slate-800"
+   425→            >
+   426→              <Keyboard className="h-3.5 w-3.5" />
+   427→            </Button>
+   428→          </div>
+   429→        </div>
+   430→        {activeRun && (
+   431→          <div className="border-t border-slate-800/60 bg-slate-900/40">
+   432→            <div className="max-w-[1600px] mx-auto px-4 py-1.5 flex items-center gap-3 flex-wrap text-[11px] font-mono">
+   433→              <Badge variant="outline" className="border-red-800 text-red-300 bg-red-950/50 text-[10px]">
+   434→                <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse mr-1" />
+   435→                {activeRun.scenarioId} ACTIVE
+   436→              </Badge>
+   437→              <span className="text-slate-400 hidden sm:inline">{activeRun.scenarioName}</span>
+   438→              <PhaseSteps phase={activeRun.phase} />
+   439→              {activeRun.mttd !== null && (
+   440→                <>
+   441→                  <span className="text-slate-600">mttd:</span>
+   442→                  <span className="text-amber-300">{activeRun.mttd}s</span>
+   443→                </>
+   444→              )}
+   445→              {activeRun.mttm !== null && (
+   446→                <>
+   447→                  <span className="text-slate-600">mttm:</span>
+   448→                  <span className="text-orange-300">{activeRun.mttm}s</span>
+   449→                </>
+   450→              )}
+   451→              {activeRun.appliedPolicy && (
+   452→                <>
+   453→                  <span className="text-slate-600">policy:</span>
+   454→                  <span className="text-orange-300">{activeRun.appliedPolicy}</span>
+   455→                </>
+   456→              )}
+   457→              <span className="text-slate-600 ml-auto">injected at t={activeRun.injectedAt}s</span>
+   458→            </div>
+   459→          </div>
+   460→        )}
+   461→      </header>
+   462→      {/* emerald hairline under the header */}
+   463→      <div aria-hidden="true" className="h-px bg-gradient-to-r from-transparent via-emerald-500/40 to-transparent" />
+   464→
+   465→      {/* shortcut overlay — grouped operator reference */}
+   466→      {showShortcuts && (
+   467→        <div
+   468→          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+   469→          onClick={() => setShowShortcuts(false)}
+   470→          role="dialog"
+   471→          aria-modal="true"
+   472→          aria-label="keyboard shortcuts"
+   473→        >
+   474→          <div
+   475→            className="rounded-xl border border-slate-700 bg-slate-900/95 shadow-2xl max-w-md w-full overflow-hidden"
+   476→            onClick={(e) => e.stopPropagation()}
+   477→          >
+   478→            <div className="px-5 py-3.5 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-800/60 to-slate-900 flex items-center gap-2.5">
+   479→              <span className="flex items-center justify-center h-7 w-7 rounded-lg border border-emerald-800 bg-emerald-950/60">
+   480→                <Keyboard className="h-4 w-4 text-emerald-400" />
+   481→              </span>
+   482→              <div className="min-w-0">
+   483→                <div className="text-sm font-semibold text-slate-100 leading-tight">Operator Shortcuts</div>
+   484→                <div className="text-[10px] font-mono text-slate-500">NOC keyboard control · press <span className="text-emerald-400">Esc</span> to close</div>
+   485→              </div>
+   486→              <button
+   487→                onClick={() => setShowShortcuts(false)}
+   488→                aria-label="close shortcuts"
+   489→                className="ml-auto h-7 w-7 flex items-center justify-center rounded-md text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+   490→              >
+   491→                <span className="text-lg leading-none" aria-hidden>×</span>
+   492→              </button>
+   493→            </div>
+   494→            <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto scrollbar-thin">
+   495→              {[
+   496→                {
+   497→                  group: 'Transport',
+   498→                  hint: 'simulation clock & engine',
+   499→                  items: [
+   500→                    ['Space', 'run / pause the simulation clock'],
+   501→                    ['R', 'reset to 10-AS baseline'],
+   502→                  ],
+   503→                },
+   504→                {
+   505→                  group: 'Navigation',
+   506→                  hint: 'tabs & route telemetry',
+   507→                  items: [
+   508→                    ['1 – 5', 'switch tabs (control · analytics · benchmark · copilot · docs)'],
+   509→                    ['/', 'focus the live RIB filter — prefix / AS path / origin'],
+   510→                    ['F', 'toggle anomalous-only route filter'],
+   511→                  ],
+   512→                },
+   513→                {
+   514→                  group: 'Senses & Modals',
+   515→                  hint: 'alerts, help, deep links',
+   516→                  items: [
+   517→                    ['M', 'mute / unmute NOC sound alerts'],
+   518→                    ['?', 'toggle this help'],
+   519→                    ['Esc', 'close modals · clear filters when focused'],
+   520→                  ],
+   521→                },
+   522→              ].map((grp) => (
+   523→                <div key={grp.group}>
+   524→                  <div className="flex items-baseline gap-2 mb-1.5">
+   525→                    <span className="text-[10px] font-semibold tracking-widest text-emerald-400/90 uppercase">{grp.group}</span>
+   526→                    <span className="text-[9px] font-mono text-slate-600">{grp.hint}</span>
+   527→                    <span className="flex-1 h-px bg-slate-800/70" aria-hidden />
+   528→                  </div>
+   529→                  <div className="space-y-1">
+   530→                    {grp.items.map(([k, d]) => (
+   531→                      <div key={k} className="flex items-center gap-3 text-[11px] font-mono py-0.5">
+   532→                        <kbd className="px-2 py-1 rounded border border-slate-700 bg-slate-950 text-emerald-300 text-[10px] min-w-14 text-center shadow-[inset_0_-2px_0_rgba(0,0,0,0.4)]">{k}</kbd>
+   533→                        <span className="text-slate-400">{d}</span>
+   534→                      </div>
+   535→                    ))}
+   536→                  </div>
+   537→                </div>
+   538→              ))}
+   539→              <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-[10px] font-mono text-slate-500 leading-relaxed">
+   540→                <span className="text-slate-400">Deep links:</span> the active tab and drill-down prefix live in the URL —
+   541→                <span className="text-emerald-400"> ?tab=benchmark&prefix=192.0.2.0/24</span> — copy it to share or bookmark a forensic view.
+   542→              </div>
+   543→            </div>
+   544→          </div>
+   545→        </div>
+   546→      )}
+   547→
+   548→      {/* Main */}
+   549→      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 py-4 min-w-0">
+   550→        {!state ? (
+   551→          <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+   552→            <div className="relative">
+   553→              <Layers className="h-10 w-10 text-slate-700 animate-pulse" />
+   554→              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+   555→            </div>
+   556→            <p className="text-sm font-mono text-slate-500">connecting to BGP simulation engine…</p>
+   557→            <p className="text-[11px] font-mono text-slate-600">{connected ? 'handshaking telemetry stream' : 'engine offline — retrying'}</p>
+   558→            <div className="w-full max-w-md space-y-2 mt-2" aria-hidden="true">
+   559→              <div className="h-2.5 rounded bg-slate-900 overflow-hidden"><div className="h-full w-2/3 rounded bg-slate-800 animate-pulse" /></div>
+   560→              <div className="h-2.5 rounded bg-slate-900 overflow-hidden"><div className="h-full w-5/6 rounded bg-slate-800 animate-pulse" style={{ animationDelay: '120ms' }} /></div>
+   561→              <div className="h-2.5 rounded bg-slate-900 overflow-hidden"><div className="h-full w-1/2 rounded bg-slate-800 animate-pulse" style={{ animationDelay: '240ms' }} /></div>
+   562→            </div>
+   563→          </div>
+   564→        ) : (
+   565→          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+   566→            <TabsList className="bg-slate-900 border border-slate-800 h-9 w-full justify-start overflow-x-auto scrollbar-none rounded-md">
+   567→              <TabsTrigger value="control" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-slate-800 text-slate-300 gap-1.5 focus-visible:ring-1 focus-visible:ring-emerald-600">
+   568→                <SlidersHorizontal className="h-3 w-3 hidden sm:inline-block" /> CONTROL ROOM
+   569→                {state.activeRun && (
+   570→                  <span
+   571→                    className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-red-900 bg-red-950/60 text-[8.5px] text-red-300 leading-none"
+   572→                    aria-label="attack active"
+   573→                  >
+   574→                    <span className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
+   575→                    <span className="hidden sm:inline">{state.activeRun.scenarioId}</span>
+   576→                  </span>
+   577→                )}
+   578→              </TabsTrigger>
+   579→              <TabsTrigger value="analytics" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-slate-800 text-slate-300 gap-1.5 focus-visible:ring-1 focus-visible:ring-emerald-600">
+   580→                <BarChart3 className="h-3 w-3 hidden sm:inline-block" /> ANALYTICS
+   581→              </TabsTrigger>
+   582→              <TabsTrigger value="benchmark" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-slate-800 text-slate-300 gap-1.5 focus-visible:ring-1 focus-visible:ring-emerald-600">
+   583→                <Trophy className="h-3 w-3 hidden sm:inline-block" /> BENCHMARK
+   584→                {['arm-a', 'run-a', 'arm-b', 'run-b'].includes(ablation.phase) && (
+   585→                  <span
+   586→                    className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-violet-800 bg-violet-950/60 text-[8.5px] text-violet-300 leading-none"
+   587→                    aria-label="ablation experiment running"
+   588→                    title={`A/B experiment running — ${ablation.phase}`}
+   589→                  >
+   590→                    <span className="w-1 h-1 rounded-full bg-violet-400 animate-pulse" />
+   591→                    <span className="hidden sm:inline">A/B</span>
+   592→                  </span>
+   593→                )}
+   594→                {chaos.phase === 'running' && (
+   595→                  <span
+   596→                    className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-amber-700 bg-amber-950/60 text-[8.5px] text-amber-300 leading-none"
+   597→                    aria-label="chaos drill running"
+   598→                    title={`Chaos drill running — round ${chaos.current}/${chaos.totalRounds}`}
+   599→                  >
+   600→                    <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" />
+   601→                    <span className="hidden sm:inline">CHAOS {Math.min(chaos.current, chaos.totalRounds)}/{chaos.totalRounds}</span>
+   602→                  </span>
+   603→                )}
+   604→                {state.metrics.totalRuns > 0 && !['arm-a', 'run-a', 'arm-b', 'run-b'].includes(ablation.phase) && chaos.phase !== 'running' && (
+   605→                  <span className="px-1.5 py-px rounded-full border border-slate-700 bg-slate-950/60 text-[8.5px] text-slate-400 leading-none tabular-nums">
+   606→                    {state.metrics.totalRuns}
+   607→                  </span>
+   608→                )}
+   609→              </TabsTrigger>
+   610→              <TabsTrigger value="copilot" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-violet-900/60 text-violet-200 gap-1.5 data-[state=active]:text-violet-100 focus-visible:ring-1 focus-visible:ring-violet-500">
+   611→                <Sparkles className="h-3 w-3 hidden sm:inline-block" /> AI COPILOT
+   612→                <span className="hidden lg:inline-block w-1 h-1 rounded-full bg-violet-400 animate-pulse" />
+   613→              </TabsTrigger>
+   614→              <TabsTrigger value="docs" className="font-mono text-[9.5px] sm:text-xs px-2 sm:px-3 data-[state=active]:bg-slate-800 text-slate-300 gap-1.5 focus-visible:ring-1 focus-visible:ring-emerald-600">
+   615→                <BookOpen className="h-3 w-3 hidden sm:inline-block" /> ARCHITECTURE
+   616→              </TabsTrigger>
+   617→            </TabsList>
+   618→
+   619→            {/* CONTROL ROOM */}
+   620→            <TabsContent value="control" className="mt-3">
+   621→              <div className="grid grid-cols-1 xl:grid-cols-[300px_1fr_340px] gap-4 items-start">
+   622→                <div className="xl:sticky xl:top-28 max-h-[calc(100vh-8rem)] overflow-y-auto pr-1 scrollbar-thin">
+   623→                  <ConfigDiff config={state.config} variantLabel={variantLabel} onResetConfig={resetConfig} />
+   624→                  <div className="mt-3">
+   625→                    <ControlCenter
+   626→                      config={state.config}
+   627→                      onUpdate={updateConfig}
+   628→                      onPreset={applyPreset}
+   629→                      onResetConfig={resetConfig}
+   630→                      onLoadPreset={(cfg) => {
+   631→                        updateConfig(cfg);
+   632→                        toast({ title: 'Preset loaded', description: 'Configuration applied to the live simulation engine.' });
+   633→                      }}
+   634→                    />
+   635→                  </div>
+   636→                </div>
+   637→
+   638→                <div className="space-y-4 min-w-0">
+   639→                  <div className="rounded-lg border border-slate-800 bg-slate-900/40 p-3 panel-accent">
+   640→                    <div className="flex items-center justify-between mb-1">
+   641→                      <span className="text-xs font-semibold text-slate-200">10-AS Multi-Tier Topology</span>
+   642→                      <span className="text-[10px] font-mono text-slate-500">
+   643→                        defender: AS{state.config.global.defenderAs} · 18 eBGP sessions
+   644→                      </span>
+   645→                    </div>
+   646→                    <TopologyGraph
+   647→                      nodes={state.nodes}
+   648→                      edges={state.edges}
+   649→                      defenderAs={state.config.global.defenderAs}
+   650→                      attackPath={(() => {
+   651→                        if (!activeRun || !['injected', 'detected', 'mitigated'].includes(activeRun.phase)) return null;
+   652→                        const scenario = ATTACK_SCENARIOS.find((s) => s.id === activeRun.scenarioId);
+   653→                        const route: RouteSnapshot | undefined = scenario
+   654→                          ? state.routes[scenario.prefix]
+   655→                          : Object.values(state.routes).find(
+   656→                              (r) => r.route.active && r.status !== 'normal' && !r.underOverride,
+   657→                            ) ?? Object.values(state.routes).find((r) => r.status === 'hijack' || r.status === 'leak');
+   658→                        if (!route || !route.route.active) return null;
+   659→                        const asns = route.route.asPath.split(/\s+/).map(Number).filter((n) => Number.isFinite(n) && n > 0);
+   660→                        if (asns.length < 2) return null;
+   661→                        return { asnPath: asns, prefix: route.route.prefix, scenarioId: activeRun.scenarioId, phase: activeRun.phase };
+   662→                      })()}
+   663→                    />
+   664→                  </div>
+   665→
+   666→                  <div>
+   667→                    <div className="flex items-center justify-between mb-1.5 gap-2 flex-wrap">
+   668→                      <div className="flex items-center gap-2 flex-wrap">
+   669→                        <span className="text-xs font-semibold text-slate-200">Live RIB / Route Telemetry</span>
+   670→                        {(() => {
+   671→                          const routes = Object.values(state.routes);
+   672→                          const abnormal = routes.filter((r) => r.status !== 'normal' || r.underOverride).length;
+   673→                          if (abnormal === 0) {
+   674→                            return (
+   675→                              <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-emerald-900 bg-emerald-950/50 text-[9px] font-mono text-emerald-400 leading-none">
+   676→                                <span className="w-1 h-1 rounded-full bg-emerald-400" /> all stable
+   677→                              </span>
+   678→                            );
+   679→                          }
+   680→                          return (
+   681→                            <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-amber-900 bg-amber-950/50 text-[9px] font-mono text-amber-300 leading-none">
+   682→                              <span className="w-1 h-1 rounded-full bg-amber-400 animate-pulse" /> {abnormal} anomalous
+   683→                            </span>
+   684→                          );
+   685→                        })()}
+   686→                        {(() => {
+   687→                          // live trust posture: mean τ + worst route + class mix
+   688→                          const routes = Object.values(state.routes);
+   689→                          if (routes.length === 0) return null;
+   690→                          const scored = routes.filter((r) => r.trust !== undefined);
+   691→                          const avg = scored.length
+   692→                            ? scored.reduce((a, r) => a + (r.trust?.score ?? 0), 0) / scored.length
+   693→                            : null;
+   694→                          const worst = routes.reduce((a, r) =>
+   695→                            (r.trust?.score ?? 2) < (a.trust?.score ?? 2) ? r : a, routes[0]);
+   696→                          const worstTrust = worst.trust?.score ?? null;
+   697→                          const mix = (['hijack', 'leak', 'suspicious', 'recovering'] as const)
+   698→                            .map((s) => ({ s, n: routes.filter((r) => r.status === s).length }))
+   699→                            .filter((x) => x.n > 0);
+   700→                          return (
+   701→                            <span className="flex items-center gap-1.5 flex-wrap">
+   702→                              {avg !== null && (
+   703→                                <span
+   704→                                  className="px-1.5 py-px rounded-full border border-teal-900/70 bg-teal-950/40 text-[9px] font-mono text-teal-300 leading-none tabular-nums"
+   705→                                  title={`mean trust score across ${scored.length} scored routes`}
+   706→                                >
+   707→                                  avg τ {avg.toFixed(2)}
+   708→                                </span>
+   709→                              )}
+   710→                              {worstTrust !== null && worstTrust < 0.85 && (
+   711→                                <span
+   712→                                  className={`px-1.5 py-px rounded-full border leading-none text-[9px] font-mono tabular-nums ${
+   713→                                    worstTrust < 0.25
+   714→                                      ? 'border-red-900/70 bg-red-950/40 text-red-300'
+   715→                                      : worstTrust < 0.55
+   716→                                        ? 'border-orange-900/70 bg-orange-950/40 text-orange-300'
+   717→                                        : 'border-amber-900/70 bg-amber-950/40 text-amber-300'
+   718→                                  }`}
+   719→                                  title={`lowest-scoring route: ${worst.route.prefix}`}
+   720→                                >
+   721→                                  worst τ {worstTrust.toFixed(2)}
+   722→                                </span>
+   723→                              )}
+   724→                              {mix.map((x) => (
+   725→                                <span
+   726→                                  key={x.s}
+   727→                                  className={`px-1.5 py-px rounded-full border leading-none text-[9px] font-mono ${
+   728→                                    x.s === 'hijack'
+   729→                                      ? 'border-red-900/70 bg-red-950/40 text-red-300'
+   730→                                      : x.s === 'leak'
+   731→                                        ? 'border-orange-900/70 bg-orange-950/40 text-orange-300'
+   732→                                        : x.s === 'suspicious'
+   733→                                          ? 'border-amber-900/70 bg-amber-950/40 text-amber-300'
+   734→                                          : 'border-cyan-900/70 bg-cyan-950/40 text-cyan-300'
+   735→                                  }`}
+   736→                                >
+   737→                                  {x.n} {x.s}
+   738→                                </span>
+   739→                              ))}
+   740→                            </span>
+   741→                          );
+   742→                        })()}
+   743→                      </div>
+   744→                      <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">{Object.keys(state.routes).length} prefixes · click a route for diagnostics · ⌖ full history · <kbd className="kbd-hint">/</kbd> filter</span>
+   745→                      <span className="text-[10px] font-mono text-slate-500 sm:hidden">{Object.keys(state.routes).length} prefixes · ⌖ for history</span>
+   746→                    </div>
+   747→                    <RouteTable
+   748→                      state={state}
+   749→                      onFocusPrefix={setDrillPrefix}
+   750→                      cmd={routeCmd}
+   751→                      anomalousOnly={anomalousOnly}
+   752→                      onToggleAnomalous={() => setAnomalousOnly((v) => !v)}
+   753→                    />
+   754→                  </div>
+   755→
+   756→                  <RibLogViewer state={state} onFocusPrefix={setDrillPrefix} />
+   757→
+   758→                  <RouteMapPreview config={state.config} />
+   759→                </div>
+   760→
+   761→                <div className="space-y-4 xl:sticky xl:top-28">
+   762→                  <AttackPanel
+   763→                    activeScenarioId={activeRun?.scenarioId ?? null}
+   764→                    activePhase={activeRun?.phase ?? null}
+   765→                    activeElapsedSec={
+   766→                      activeRun ? Math.max(0, Math.round((state?.simTime ?? 0) - activeRun.injectedAt)) : 0
+   767→                    }
+   768→                    activeRemainingSec={(() => {
+   769→                      if (!activeRun) return null;
+   770→                      const sc = ATTACK_SCENARIOS.find((s) => s.id === activeRun.scenarioId);
+   771→                      if (!sc) return null; // custom attack — duration not tracked in RunResult
+   772→                      const elapsed = Math.max(0, Math.round((state?.simTime ?? 0) - activeRun.injectedAt));
+   773→                      return Math.max(0, sc.defaultDurationSec - elapsed);
+   774→                    })()}
+   775→                    onInject={(id) => {
+   776→                      injectAttack(id);
+   777→                      toast({ title: `Scenario ${id} injected`, description: 'Rogue announcement propagating through the 10-AS testbed.' });
+   778→                    }}
+   779→                    onWithdraw={() => {
+   780→                      withdrawAttack();
+   781→                      toast({ title: 'Attack withdrawn', description: 'Rogue announcement removed — awaiting autonomous rollback.' });
+   782→                    }}
+   783→                    onCustom={injectCustom}
+   784→                  />
+   785→                  <div className="h-[420px] hidden xl:block">
+   786→                    <EventLog events={state.events} simTime={state.simTime} />
+   787→                  </div>
+   788→                </div>
+   789→
+   790→                <div className="xl:hidden col-span-full">
+   791→                  <EventLog events={state.events} simTime={state.simTime} />
+   792→                </div>
+   793→              </div>
+   794→            </TabsContent>
+   795→
+   796→            {/* ANALYTICS */}
+   797→            <TabsContent value="analytics" className="mt-3">
+   798→              <AnalyticsPanel state={state} />
+   799→              <div className="mt-4">
+   800→                <TimeTravelScrubber
+   801→                  key={jumpTarget ? `jump-${jumpTarget.nonce}` : 'base'}
+   802→                  state={state}
+   803→                  initialT={jumpTarget?.t ?? null}
+   804→                />
+   805→              </div>
+   806→              <div className="mt-4">
+   807→                <ScenarioDeepDive state={state} />
+   808→              </div>
+   809→            </TabsContent>
+   810→
+   811→            {/* BENCHMARK */}
+   812→            <TabsContent value="benchmark" className="mt-3">
+   813→              <BenchmarkPanel
+   814→                state={state}
+   815→                ablation={ablation}
+   816→                chaos={chaos}
+   817→                onInject={(id) => {
+   818→                  injectAttack(id);
+   819→                  toast({ title: `Scenario ${id} injected`, description: 'Rogue announcement propagating through the 10-AS testbed.' });
+   820→                }}
+   821→                onWithdraw={withdrawAttack}
+   822→                onStart={start}
+   823→                onJumpToTime={(t, label) => {
+   824→                  setJumpTarget({ t, nonce: Date.now() });
+   825→                  setActiveTab('analytics');
+   826→                  toast({
+   827→                    title: 'Time-travel jump',
+   828→                    description: `Scrubber moved to t=${t}s (${label}) — replay this run in the Analytics tab.`,
+   829→                  });
+   830→                }}
+   831→              />
+   832→            </TabsContent>
+   833→
+   834→            {/* AI COPILOT */}
+   835→            <TabsContent value="copilot" className="mt-3">
+   836→              <AiAssistantPanel state={state} variantLabel={variantLabel} />
+   837→            </TabsContent>
+   838→
+   839→            {/* ARCHITECTURE */}
+   840→            <TabsContent value="docs" className="mt-3">
+   841→              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+   842→                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+   843→                  <span className="text-sm font-semibold text-slate-100">Autonomous Control-Plane Pipeline</span>
+   844→                  <pre className="text-[10.5px] font-mono text-slate-400 leading-relaxed whitespace-pre-wrap">{`[ Telemetry Coroutine ]  async vtysh collector
+   845→        │  show bgp summary + ipv4 unicast JSON
+   846→        ▼
+   847→[ 10-Feature Behavioral Extractor ]
+   848→  1. AS-Path Hop Count        6. Rolling 5-Min Flap Count
+   849→  2. AS-Path Edit Distance    7. Current Local Preference
+   850→  3. Origin AS Change Flag    8. True Route Maturity (Age)
+   851→  4. Prefix CIDR Mask Length  9. Gao-Rexford Valley-Free
+   852→  5. Announcements / Minute  10. Peer Neighbor Diversity
+   853→        │
+   854→        ▼
+   855→[ Calibrated ML + Hybrid Trust Engine ]
+   856→  RF 85.06% acc · τ = Σ wᵢ·tᵢ (origin 0.20, path 0.20,
+   857→  flap 0.15, prefix 0.15, peer 0.10, ML 0.20)
+   858→        │
+   859→        ▼
+   860→[ Shadow Validator & Anti-Thrashing Guard ]
+   861→  streak persistence + dwell time + Δ hysteresis
+   862→        │
+   863→        ▼
+   864→[ Dedicated Policy Actor — Atomic Route-Maps ]
+   865→  Normal      τ ≥ 0.85  →  LP 100
+   866→  Suspicious  0.55-0.80  →  LP 80   (soft)
+   867→  Leak        0.25-0.55  →  LP 50   (hard)
+   868→  Hijack      τ < 0.25   →  LP 0 + no-export (quarantine)
+   869→        │
+   870→        ▼
+   871→[ Two-Layer RIB Verification ]  config + best-path commit
+   872→        │
+   873→        ▼
+   874→[ Multi-Criteria Autonomous Rollback ]  → LP 100`}</pre>
+   875→                </div>
+   876→                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+   877→                  <span className="text-sm font-semibold text-slate-100">Attack Scenario Catalogue</span>
+   878→                  <pre className="text-[10.5px] font-mono text-slate-400 leading-relaxed whitespace-pre-wrap">{`S1  Direct Prefix Hijack     exact /24 by rogue AS65010
+   879→    → best-path competition w/ incumbent route
+   880→
+   881→S2  Sub-Prefix Hijack /25    more-specific deaggregation
+   882→    → longest-prefix match captures traffic instantly
+   883→
+   884→S3  Burst Route Flapping     churn flood from origin AS65007
+   885→    → damped via soft deprioritization (LP 80)
+   886→
+   887→S4  YouTube 2008 Replay      PT (AS17557) hijacks 208.65.153.0/24
+   888→    → sub-prefix of YouTube's /22 allocation
+   889→
+   890→S5  Google 2017 Route Leak   Rostelecom (AS12389) transit leak
+   891→    → valley-free violation, origin cryptographically valid
+   892→
+   893→S6  Cloudflare 2019 Leak     Allegheny (AS396531) → Verizon (AS701)
+   894→    → customer-to-peer leak, valid origin AS13335
+   895→
+   896→Historical defenses compared in parallel:
+   897→  · Standard BGP (RFC 4271)   — no detection
+   898→  · RPKI ROV (RFC 6811)       — origin-validity only
+   899→  · Behavioural heuristics     — fixed rules, ~92% PDR
+   900→  · AI Control Plane (this)    — closed-loop autonomous`}</pre>
+   901→                </div>
+   902→                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 lg:col-span-2">
+   903→                  <span className="text-sm font-semibold text-slate-100">Ablation Experiment Variants</span>
+   904→                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-5 gap-2">
+   905→                    {[
+   906→                      ['A0', 'Standard BGP', 'no detector · no mitigation · RFC baseline'],
+   907→                      ['A1', '+ Heuristics', 'rule-based detection · immediate static policy'],
+   908→                      ['A2', '+ ML Only', 'RF class → policy · no trust weighting'],
+   909→                      ['A3', '+ Trust', 'ML + 6-factor continuous trust score'],
+   910→                      ['A4', 'Full System', '+ shadow staging + atomic commit + rollback'],
+   911→                    ].map(([id, name, desc]) => (
+   912→                      <div key={id} className="rounded border border-slate-800 bg-slate-900/50 p-2.5 hover:border-slate-700 transition-colors">
+   913→                        <div className="text-[11px] font-mono font-semibold text-emerald-300">{id}</div>
+   914→                        <div className="text-[11px] font-semibold text-slate-200 mt-0.5">{name}</div>
+   915→                        <div className="text-[10px] text-slate-500 mt-1">{desc}</div>
+   916→                      </div>
+   917→                    ))}
+   918→                  </div>
+   919→                  <p className="mt-3 text-[11px] font-mono text-slate-500">
+   920→                    Based on the AI-Enhanced BGP research project (v3.0) — 10-AS FRR testbed, empirical telemetry training, MTTD/MTTM/MSR benchmarking.
+   921→                  </p>
+   922→                </div>
+   923→                <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 lg:col-span-2">
+   924→                  <span className="text-sm font-semibold text-slate-100">Operator Tooling</span>
+   925→                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+   926→                    {[
+   927→                      ['NOC sound alerts', 'synthesized tones on injection, detection, quarantine and rollback — header mute toggle persists'],
+   928→                      ['Time-travel scrubber', 'replay any t in the Analytics tab — run bands, event markers, trust reconstruction at T'],
+   929→                      ['Run deep-links', 'hover a run row in Benchmark and jump its injection moment into the scrubber'],
+   930→                      ['Streaming AI copilot', 'token-by-token LLM analysis of live engine state (Enter to send) + markdown transcript export'],
+   931→                      ['Run archive exports', 'SQLite-persisted runs → styled standalone HTML report or CSV'],
+   932→                      ['Auto-benchmark sweep', 'sequential S1→S6 injection with per-scenario progress and abort'],
+   933→                      ['Keyboard control', 'Space run/pause · R reset · 1-5 tabs · ? help'],
+   934→                      ['Live route-map preview', 'FRR-style config generated from your sliders — copy or download .conf'],
+   935→                      ['RIB verification log', 'two-layer commit audit with pass-rate and retry tracking'],
+   936→                      ['Config diff monitor', 'live drift view of every knob vs the A4 baseline — grouped by subsystem with restore button'],
+   937→                      ['Trust trajectory sparklines', 'per-prefix trust history with policy-tier bands and minimum marker inside route diagnostics'],
+   938→                      ['Threat condition level', 'DEFCON-style L5→L1 posture indicator in the header, derived from routes and run phase'],
+   939→                      ['Prefix drill-down forensics', '⌖ on any route row (or RIB log prefix) opens a modal: trust decomposition τ = Σ wᵢ·tᵢ, full trajectory chart, run lifecycle timeline, per-prefix event stream and RIB audit'],
+   940→                      ['Attack path overlay', 'topology renders the live hijack propagation path as an animated red flow from origin toward the defender — switches to a blocked ✕ marker when quarantine commits'],
+   941→                      ['Ablation A/B laboratory', 'Benchmark tab: controlled experiment — same scenario under two ablation variants back-to-back with side-by-side detection/MTTD/MTTM/MSR comparison; your config is snapshotted and restored'],
+   942→                      ['Variant performance archive', 'Analytics tab: detection rate, MSR and mean MTTD/MTTM aggregated per variant across every run ever persisted to SQLite — the long-horizon ablation story'],
+   943→                      ['A/B fast modes', '2×/4× speed selector on the A/B laboratory — shortens the injected attack (60s/45s) so full experiments complete in ~15-40s real time while preserving lifecycle fidelity'],
+   944→                      ['Chaos drill · soak test', 'Benchmark tab: randomized scenario sequence (mixed/hijack/leak pools) fired back-to-back under your live config — per-round forensics, detection/MSR/MTTD KPIs, worst-case tracking; page-level state machine survives tab switches'],
+   945→                      ['Per-prefix forensic export', '⌖ drill-down modal: one-click standalone HTML forensic report — run KPIs, 4-defense comparison, inline-SVG trust trajectory with tier lines, lifecycle timeline bands, event log, RIB audit and the 10-feature vector'],
+   946→                      ['Deep-link URLs', 'the active tab and drill-down prefix are mirrored into the address bar (?tab=…&prefix=…) — reload-safe, shareable forensic views; copy-link button in the drill-down header'],
+   947→                      ['Live RIB filter & sort', 'route table toolbar: text search (prefix · AS path · origin) with amber match highlighting, status chips with live counts, anomalous-only toggle (F) and 4 sort orders (prefix / worst severity / τ) — / focuses the box'],
+   948→                      ['Event stream grep', 'text search across the controller event stream combined with the source chips — matched substrings are highlighted inside the messages'],
+   949→                      ['Route table live posture strip', 'RIB header shows mean τ, the worst-scoring route and the live status mix (hijack / leak / suspicious / recovering) as tone-coded chips'],
+   950→                      ['Expanded keyboard control', 'Space run/pause · R reset · M mute · 1-5 tabs · / RIB search · F anomalous filter · ? grouped operator reference · Esc closes modals — shortcuts are suppressed while the drill-down owns the keyboard'],
+   951→                    ].map(([name, desc]) => (
+   952→                      <div key={name} className="rounded border border-slate-800 bg-slate-900/50 p-2.5 hover:border-slate-700 transition-colors">
+   953→                        <div className="text-[11px] font-semibold text-slate-200">{name}</div>
+   954→                        <div className="text-[10px] text-slate-500 mt-1">{desc}</div>
+   955→                      </div>
+   956→                    ))}
+   957→                  </div>
+   958→                </div>
+   959→              </div>
+   960→            </TabsContent>
+   961→          </Tabs>
+   962→        )}
+   963→
+   964→        {/* per-prefix drill-down modal — reachable from route rows + RIB log */}
+   965→        {state && (
+   966→          <PrefixDrilldown state={state} prefix={drillPrefix} onClose={() => setDrillPrefix(null)} />
+   967→        )}
+   968→      </main>
+   969→
+   970→      {/* Footer */}
+   971→      <footer className="mt-auto border-t border-slate-800 bg-slate-950/95">
+   972→        <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/25 to-transparent" aria-hidden="true" />
+   973→        <div className="max-w-[1600px] mx-auto px-4 py-2.5 flex items-center gap-3 flex-wrap text-[10px] font-mono text-slate-600">
+   974→          <span className="text-slate-400">AI-Enhanced BGP Simulation · v3.0 replica</span>
+   975→          <span className="hidden sm:flex items-center gap-1" aria-label="pipeline stages">
+   976→            {['telemetry', 'features', 'ML', 'trust', 'shadow', 'policy', 'RIB', 'rollback'].map((stage, i) => (
+   977→              <React.Fragment key={stage}>
+   978→                {i > 0 && <span className="text-slate-800">→</span>}
+   979→                <span className={`px-1.5 py-px rounded border ${i === 7 ? 'border-emerald-900/60 text-emerald-500/90' : 'border-slate-800 text-slate-500'}`}>
+   980→                  {stage}
+   981→                </span>
+   982→              </React.Fragment>
+   983→            ))}
+   984→          </span>
+   985→          <span className="ml-auto hidden md:flex items-center gap-2">
+   986→            <span className="kbd-hint" aria-hidden="true">space</span>
+   987→            <span className="hidden lg:inline">run</span>
+   988→            <span className="kbd-hint" aria-hidden="true">/</span>
+   989→            <span className="hidden lg:inline">filter</span>
+   990→            <span className="kbd-hint" aria-hidden="true">F</span>
+   991→            <span className="hidden lg:inline">anomalous</span>
+   992→            <span className="kbd-hint" aria-hidden="true">R</span>
+   993→            <span className="hidden lg:inline">reset</span>
+   994→            <span className="kbd-hint" aria-hidden="true">?</span>
+   995→            <span className="hidden lg:inline">help</span>
+   996→            <span className="hidden xl:inline text-slate-600">· LocalPref 100/80/50/0 + no-export · Gao-Rexford · RFC 1997/6811/9234</span>
+   997→          </span>
+   998→        </div>
+   999→      </footer>
+  1000→    </div>
+  1001→  );
+  1002→}
+  1003→
